@@ -59,7 +59,9 @@ function requiredMainPicker() {
   const picker = document.querySelector("[data-main-picker]");
   if (!(picker instanceof HTMLDialogElement)) return null;
   const params = new URLSearchParams(window.location.search);
-  return params.get("select_main") === "required" && picker.dataset.hasMain !== "true" ? picker : null;
+  return params.get("select_main") === "required"
+    && picker.dataset.hasMain !== "true"
+    && picker.querySelector("[data-select-main]") !== null ? picker : null;
 }
 
 function openRequestedMainPicker() {
