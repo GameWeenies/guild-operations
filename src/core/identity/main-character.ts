@@ -1,3 +1,4 @@
+import { effectiveGuildRosterSql } from "../guild/effective-roster.js";
 import { requireOperationalInstallationGuildBinding } from "../installation/guild-binding.js";
 import { pool } from "../../db.js";
 
@@ -39,9 +40,8 @@ export async function selectCharacterRepresentation(
        wcp.avatar_url
      FROM controlled_character_roster ccr
      JOIN character_roster cr ON cr.character_record_id = ccr.character_record_id
-     JOIN guild_roster gr
+     JOIN ${effectiveGuildRosterSql} gr
        ON gr.character_record_id = cr.character_record_id
-      AND gr.currently_present = true
      LEFT JOIN wow_character_profiles wcp
        ON wcp.region = cr.region
       AND wcp.realm_id = cr.realm_id
@@ -109,8 +109,8 @@ export async function characterRepresentationForIdentity(identityId: string): Pr
        cr.realm_id,
        cr.name,
        cr.realm_name,
-       CASE WHEN gr.currently_present IS TRUE THEN gr.rank_index ELSE NULL END AS rank_index,
-       (ccr.currently_controlled IS TRUE AND gr.currently_present IS TRUE) AS currently_eligible,
+       CASE WHEN gr.character_record_id IS NOT NULL THEN gr.rank_index ELSE NULL END AS rank_index,
+       (ccr.currently_controlled IS TRUE AND gr.character_record_id IS NOT NULL) AS currently_eligible,
        wcp.avatar_url
      FROM identity_character_representations representation
      JOIN character_roster cr
@@ -118,7 +118,7 @@ export async function characterRepresentationForIdentity(identityId: string): Pr
      LEFT JOIN controlled_character_roster ccr
        ON ccr.identity_id = representation.identity_id
       AND ccr.character_record_id = representation.character_record_id
-     LEFT JOIN guild_roster gr
+     LEFT JOIN ${effectiveGuildRosterSql} gr
        ON gr.guild_id = representation.guild_id
       AND gr.character_record_id = representation.character_record_id
      LEFT JOIN wow_character_profiles wcp
