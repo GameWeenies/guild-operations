@@ -1,3 +1,4 @@
+import { effectiveGuildRosterSql } from "./effective-roster.js";
 import type { PoolClient } from "pg";
 import { acquireGuildAuthorityByReference, type BlizzardGuildProfile, type BlizzardGuildRoster } from "../../blizzard.js";
 import type { Region } from "../../config.js";
@@ -50,9 +51,8 @@ async function guildieRosterState(client: PoolClient, guildId: string): Promise<
   const result = await client.query<{ identity_id: string; rank_index: number }>(
     `SELECT ccr.identity_id AS identity_id, MIN(gr.rank_index)::integer AS rank_index
        FROM controlled_character_roster ccr
-       JOIN guild_roster gr
+       JOIN ${effectiveGuildRosterSql} gr
          ON gr.character_record_id = ccr.character_record_id
-        AND gr.currently_present = true
       WHERE ccr.currently_controlled = true
         AND gr.guild_id = $1
       GROUP BY ccr.identity_id`,
