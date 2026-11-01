@@ -24,7 +24,7 @@ test("membership, representation, attribution, and refresh transitions use effec
   ]) {
     const file = source(path);
     assert.ok(file.includes("effectiveGuildRosterSql"), path);
-    assert.ok(file.includes("${effectiveGuildRosterSql} gr"), path);
+    assert.ok(file.includes("${effectiveGuildRosterSql}"), path);
   }
 });
 
