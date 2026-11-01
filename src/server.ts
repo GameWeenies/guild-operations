@@ -32,6 +32,7 @@ import { registerMePage } from "./web/pages/me.js";
 import { registerMyParticipationPage } from "./web/pages/my-participation.js";
 import { registerSiteInformationPages } from "./web/pages/site-information.js";
 import { registerSetupPage } from "./web/pages/setup.js";
+import { registerRosterMembersPage } from "./web/pages/roster-members.js";
 
 // Database-dependent secret inspection runs after readiness.
 
@@ -95,6 +96,7 @@ await registerActivityBoundaryRoutes(app, webAssets);
 app.get("/events", async (_request, reply) => reply.redirect("/activities"));
 app.get<{ Params: { "*": string } }>("/events/*", async (request, reply) => reply.redirect(`/activities/${request.params["*"]}`));
 await registerAdminPage(app, webAssets);
+await registerRosterMembersPage(app, webAssets);
 await registerDiscordAdminPage(app, webAssets);
 await registerDiscordOAuthRoutes(app);
 // Interaction key loads during readiness inspection.
