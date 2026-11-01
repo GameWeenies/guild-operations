@@ -1,3 +1,4 @@
+import { effectiveGuildRosterSql } from "./effective-roster.js";
 import { config, type Region } from "../../config.js";
 import { pool } from "../../db.js";
 
@@ -32,7 +33,7 @@ export async function characterMembership(
         AND cr.region = $2
         AND cr.realm_id = $3
         AND cr.character_id = $4
-        AND gr.currently_present = true`,
+`,
     [coordinate.guildId, coordinate.region, coordinate.realmId, coordinate.characterId],
   );
 
