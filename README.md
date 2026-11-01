@@ -1,6 +1,6 @@
 # Guild Operations
 
-Guild Operations is a self-hosted application for World of Warcraft guilds. One deployment represents one guild. Blizzard remains authoritative for account control, Characters, current guild membership, and numeric guild rank; Guild Operations owns the application facts created by the guild itself.
+Guild Operations is a self-hosted application for World of Warcraft guilds. One deployment represents one guild. Blizzard is authoritative for account control and WoW character facts. Current documented membership and rank authority is defined in `docs/doctrine/architecture.md` and `docs/doctrine/member-objects.md`; changes to that authority model must be explicitly reconciled with those contracts.
 
 ## Requirements
 
@@ -13,8 +13,8 @@ PostgreSQL is packaged with Guild Operations and is not exposed on the host.
 Clone the repository, configure the host-owned settings, and start the deployment:
 
 ```sh
-git clone https://github.com/heykiditsaaron/guild-operations-stack.git
-cd guild-operations-stack
+git clone https://github.com/GameWeenies/guild-operations.git
+cd guild-operations
 cp .env.example .env
 ```
 
@@ -63,7 +63,7 @@ Do not use `compose.yaml` in the external database command: it includes the bund
 
 ## First-run setup
 
-With host configuration in place, open the public origin in a browser. A new installation redirects to `/setup`. Sign in with Blizzard, choose an eligible guild from the Blizzard-backed candidates, and authorize it as the current rank-0 Guild Master. Host access does not grant guild authority.
+With host configuration in place, open the public origin in a browser. A new installation redirects to `/setup`. Sign in with Blizzard and complete the Guild Master authorization for the host-configured target guild. Host access does not grant guild authority.
 
 Blizzard credentials and public origin are configured on the host, **not** through the browser setup wizard. A separate System Administration service and setup-token bootstrap are not part of this deployment.
 
@@ -104,7 +104,7 @@ Do not add -v during an ordinary restart or update.
 
 ## Development image publishing
 
-To test a feature branch before merging, push the branch and use **Actions → Publish Guild Operations Image → Run workflow**, selecting that branch. A manual run against a branch publishes `ghcr.io/heykiditsaaron/guild-operations:dev` and a commit-SHA image tag. Development deployments may opt into `GUILD_OPERATIONS_VERSION=dev`; this mutable tag represents the most recently manually published branch, not necessarily `main`, and must not be used for pinned production deployments. A push to `main` does not overwrite `:dev`. Publishing an image does not restart any deployment: operators explicitly pull and recreate services when ready. Version-tagged releases continue to publish independently. The original installation's full development deployment and health-check procedure is documented in [docs/infrastructure/development-deployment.md](docs/infrastructure/development-deployment.md).
+To test a feature branch before merging, push the branch and use **Actions → Publish Guild Operations Image → Run workflow**, selecting that branch. A manual run against a branch publishes `ghcr.io/gameweenies/guild-operations:dev` and a commit-SHA image tag. Development deployments may opt into `GUILD_OPERATIONS_VERSION=dev`; this mutable tag represents the most recently manually published branch, not necessarily `main`, and must not be used for pinned production deployments. A push to `main` does not overwrite `:dev`. Publishing an image does not restart any deployment: operators explicitly pull and recreate services when ready. Version-tagged releases continue to publish independently. The original installation's full development deployment and health-check procedure is documented in [docs/infrastructure/development-deployment.md](docs/infrastructure/development-deployment.md).
 
 ## Development and architecture
 
