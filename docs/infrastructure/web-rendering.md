@@ -15,7 +15,7 @@ The shared shell owns application-level presentation including:
 - common page composition;
 - persistent member context.
 
-Authenticated member context is projected from the current Guildie. Selected-main or Character imagery may improve recognition but does not determine continuity or authorization.
+Authenticated member context is projected from the current recognized identity and its available guild context. Selected Character imagery may improve recognition but does not determine continuity or authorization.
 
 ## Shared controls
 
@@ -49,7 +49,6 @@ Guild Operations
 │   └── persistent member context
 │
 └── Administration shell
-    ├── General
     ├── General
     ├── Appearance
     ├── Ranks
@@ -126,13 +125,11 @@ Navigation belongs to the shell. Page and module identity—titles, section labe
 
 ## Application origin
 
-The externally visible application origin is installation state, not required process configuration.
-
-During first-run setup, Guild Operations derives the candidate public origin from the request the operator actually used to reach `/setup`. After Blizzard application credentials validate, that origin is persisted for OAuth callbacks and for background projections that must create absolute links without an active web request.
+The externally visible application origin is host-owned configuration, supplied through `PUBLIC_ORIGIN` or `PUBLIC_ORIGIN_FILE`. Guild Operations does not infer it from request headers or persist a request-derived origin during first-run setup. The configured origin is used for OAuth callbacks and background projections that require absolute links.
 
 Ordinary in-application navigation and asset URLs remain application-relative. The local process listen port is independent of the externally visible origin.
 
-Request-derived origin is a first-run trust boundary. Reverse proxies must preserve the public host and communicate the public scheme through the conventional forwarded headers. Guild Operations does not require an `APP_ORIGIN` environment variable.
+Configure the public scheme, host, and optional port explicitly on the host. Reverse-proxy routing must agree with that configuration; forwarded headers do not establish the canonical origin.
 
 ## Asset delivery
 
