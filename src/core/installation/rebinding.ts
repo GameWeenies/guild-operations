@@ -4,6 +4,7 @@ import { installationGuildBinding } from "./guild-binding.js";
 import { acquireGuildAuthority } from "../../blizzard.js";
 import { parseRegion } from "../../config.js";
 import { persistGuildRoster } from "../guild/guild-refresh.js";
+import { resetDestinationGuildRoster } from "../guild/roster-initialization.js";
 import { publishGuildRefreshObservation } from "../guild/guild-refresh-observers.js";
 
 /** Host intent is persisted independently of the currently bound guild. */
@@ -116,6 +117,8 @@ export async function authorizeInstallationRebind(identityId: string, sessionTok
         guild.realm.slug,
         authority.referenceHref],
     );
+    // Returning to a previously bound guild must not restore its old declarations.
+    await resetDestinationGuildRoster(client, destinationId);
     // Homepage copy and layout are guild-owned configuration, not history.
     // A guild returning to this installation must not recover its old homepage.
     await client.query("DELETE FROM guild_homepage_settings WHERE guild_id = $1", [destinationId]);
