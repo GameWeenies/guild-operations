@@ -1,3 +1,4 @@
+import { effectiveGuildRosterSql } from "./effective-roster.js";
 import { requireOperationalInstallationGuildBinding } from "../installation/guild-binding.js";
 import { pool } from "../../db.js";
 
@@ -22,9 +23,8 @@ export async function controlledGuildMemberCharacters(
     `SELECT cr.character_record_id, ccr.identity_id, gr.guild_id, gr.rank_index
        FROM controlled_character_roster ccr
        JOIN character_roster cr ON cr.character_record_id = ccr.character_record_id
-       JOIN guild_roster gr
+       JOIN ${effectiveGuildRosterSql} gr
          ON gr.character_record_id = cr.character_record_id
-        AND gr.currently_present = true
       WHERE ccr.identity_id = $1
         AND ccr.currently_controlled = true
         AND gr.guild_id = $2
