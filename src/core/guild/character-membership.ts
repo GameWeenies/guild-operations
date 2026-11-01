@@ -26,7 +26,7 @@ export async function characterMembership(
     realm_slug: string | null;
   }>(
     `SELECT gr.rank_index, cr.name AS character_name, cr.realm_name, cr.realm_slug
-       FROM guild_roster gr
+       FROM ${effectiveGuildRosterSql} gr
        JOIN character_roster cr
          ON cr.character_record_id = gr.character_record_id
       WHERE gr.guild_id = $1
