@@ -14,7 +14,7 @@ services:
       retries: 10
 
   migrate:
-    image: ghcr.io/heykiditsaaron/guild-operations:${GUILD_OPERATIONS_VERSION:-latest}
+    image: ghcr.io/gameweenies/guild-operations:${GUILD_OPERATIONS_VERSION:-latest}
     depends_on:
       db:
         condition: service_healthy
@@ -30,7 +30,7 @@ services:
     restart: "no"
 
   api:
-    image: ghcr.io/heykiditsaaron/guild-operations:${GUILD_OPERATIONS_VERSION:-latest}
+    image: ghcr.io/gameweenies/guild-operations:${GUILD_OPERATIONS_VERSION:-latest}
     environment:
       GUILD_OPERATIONS_PROCESS: api
       DATABASE_URL: ${DATABASE_URL:-postgresql://guild_operations:${POSTGRES_PASSWORD:-guild_operations}@db:5432/guild_operations}
@@ -59,7 +59,7 @@ services:
     restart: unless-stopped
 
   discord:
-    image: ghcr.io/heykiditsaaron/guild-operations:${GUILD_OPERATIONS_VERSION:-latest}
+    image: ghcr.io/gameweenies/guild-operations:${GUILD_OPERATIONS_VERSION:-latest}
     command: node dist/discord.js
     environment:
       GUILD_OPERATIONS_PROCESS: discord
