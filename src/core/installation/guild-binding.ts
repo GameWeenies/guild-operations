@@ -5,6 +5,7 @@ import { pool, withTransaction } from "../../db.js";
 import { controlledCharacterRecordIdsForIdentity } from "../identity/controlled-characters.js";
 import { characterProjections } from "../identity/character-projection.js";
 import { persistGuildRoster } from "../guild/guild-refresh.js";
+import { ensureGuildRosterInitialization } from "../guild/roster-initialization.js";
 import { hasDevelopmentGuildMasterAuthority } from "../authority/operator-authority.js";
 
 
@@ -111,6 +112,7 @@ export async function establishPendingInstallationGuildBinding(identityId: strin
   await withTransaction(async (client) => {
     const guildId = await persistGuild(client, authority.region, authority.profile, authority.referenceHref);
     await persistGuildRoster(client, guildId, authority.region, authority.roster);
+    await ensureGuildRosterInitialization(client, guildId);
     await client.query(
       `INSERT INTO installation_guild_binding (singleton, guild_id, bound_by_identity_id)
        VALUES (true, $1, $2) ON CONFLICT (singleton) DO NOTHING`,
