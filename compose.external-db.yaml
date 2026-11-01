@@ -4,7 +4,7 @@
 # For file-based credentials, additionally use compose.database-secret.yaml.
 services:
   migrate:
-    image: ghcr.io/heykiditsaaron/guild-operations:${GUILD_OPERATIONS_VERSION:-latest}
+    image: ghcr.io/gameweenies/guild-operations:${GUILD_OPERATIONS_VERSION:-latest}
     command: node dist/migrate.js
     environment:
       GUILD_OPERATIONS_PROCESS: migrate
@@ -17,7 +17,7 @@ services:
     restart: "no"
 
   api:
-    image: ghcr.io/heykiditsaaron/guild-operations:${GUILD_OPERATIONS_VERSION:-latest}
+    image: ghcr.io/gameweenies/guild-operations:${GUILD_OPERATIONS_VERSION:-latest}
     environment:
       GUILD_OPERATIONS_PROCESS: api
       DATABASE_URL: ${DATABASE_URL:-}
@@ -43,7 +43,7 @@ services:
     restart: unless-stopped
 
   discord:
-    image: ghcr.io/heykiditsaaron/guild-operations:${GUILD_OPERATIONS_VERSION:-latest}
+    image: ghcr.io/gameweenies/guild-operations:${GUILD_OPERATIONS_VERSION:-latest}
     command: node dist/discord.js
     environment:
       GUILD_OPERATIONS_PROCESS: discord
