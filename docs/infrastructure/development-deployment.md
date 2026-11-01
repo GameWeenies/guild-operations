@@ -1,18 +1,18 @@
 # Development deployment workflow
 
-This document describes the current **OH CRIT I Pulled! development installation**. It is not the default installation procedure for other guilds; see the repository README for that.
+This document records an **installation-specific development workflow** for the original Guild Operations deployment. Paths, project names, ports, and addresses below are historical configuration examples and must be checked against the host before use. For other guilds, use the repository README.
 
 ## Deployment boundaries
 
 | | Development | Production |
 | --- | --- | --- |
-| Checkout / Compose directory | `/home/aaron/dev/guild-operations-stack` | `/opt/guild-operations` |
-| Compose project | `guild-operations-stack` | `guild-operations` |
-| Image | `ghcr.io/heykiditsaaron/guild-operations:dev` | Pinned versioned image |
-| Host HTTP port | `3101` | `3100` |
+| Checkout / Compose directory | Host-specific checkout | `/opt/guild-operations` |
+| Compose project | Host-configured project | Host-configured project |
+| Image | `ghcr.io/gameweenies/guild-operations:dev` | Pinned versioned image |
+| Host HTTP port | Host-configured port | Host-configured port |
 | Public address | `https://dev.guild.gameweenies.net` | `https://guild.gameweenies.net` |
 
-The two Compose projects have separate database and installation volumes. The development public address is served through Nginx, which forwards to host port 3101. These are installation-specific values, not product defaults.
+Keep development and production Compose projects and persistent volumes separate. Reverse-proxy routing and ports are installation-specific; verify the active host configuration before running commands.
 
 ## Publish a committed branch from GitHub
 
@@ -22,7 +22,7 @@ The two Compose projects have separate database and installation volumes. The de
 4. On the development host, deploy deliberately:
 
 ```bash
-cd ~/dev/guild-operations-stack
+cd /path/to/your/guild-operations-checkout
 GUILD_OPERATIONS_VERSION=dev docker compose pull
 GUILD_OPERATIONS_VERSION=dev docker compose up -d --no-build --pull never
 GUILD_OPERATIONS_VERSION=dev docker compose ps
@@ -35,8 +35,8 @@ The checked-out Git branch does **not** determine which code is in the pulled im
 To test a local checkout, including uncommitted changes, build the same tag locally:
 
 ```bash
-cd ~/dev/guild-operations-stack
-docker build -t ghcr.io/heykiditsaaron/guild-operations:dev .
+cd /path/to/your/guild-operations-checkout
+docker build -t ghcr.io/gameweenies/guild-operations:dev .
 GUILD_OPERATIONS_VERSION=dev docker compose up -d --no-build --pull never --force-recreate api discord
 ```
 
@@ -47,7 +47,7 @@ A local build overwrites the host's local `:dev` tag. A subsequent `docker compo
 The API may take time to start after Compose reports that the containers were started. A transient Nginx 502 immediately after deployment is not by itself evidence of a failed deployment.
 
 ```bash
-cd ~/dev/guild-operations-stack
+cd /path/to/your/guild-operations-checkout
 for attempt in $(seq 1 12); do
   if curl --fail --silent --show-error --max-time 5 \
     https://dev.guild.gameweenies.net/health; then
@@ -66,7 +66,7 @@ done
 If the public endpoint remains unavailable, compare the direct API with the Nginx route and inspect logs:
 
 ```bash
-curl -si --max-time 10 http://127.0.0.1:3101/health
+curl -si --max-time 10 http://127.0.0.1:${HTTP_PORT:-3000}/health
 curl -si --max-time 10 https://dev.guild.gameweenies.net/health
 GUILD_OPERATIONS_VERSION=dev docker compose ps
 GUILD_OPERATIONS_VERSION=dev docker compose logs --tail=60 api
