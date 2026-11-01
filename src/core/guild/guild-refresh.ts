@@ -258,6 +258,7 @@ export async function refreshGuildAuthority(): Promise<GuildRefreshResult> {
   if (String(authority.roster.guild.id) !== binding.guildId) throw new Error("Blizzard guild roster does not corroborate the bound guild id");
 
   const persisted = await withTransaction(async (client) => {
+    await client.query("SELECT guild_id FROM guilds WHERE guild_id = $1 FOR UPDATE", [binding.guildId]);
     const guildId = await persistGuild(client, guild.region, authority.profile);
     const beforeGuildies = await guildieRosterState(client, guildId);
     const roster = await persistGuildRoster(client, guildId, guild.region, authority.roster);
