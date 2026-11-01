@@ -1,3 +1,4 @@
+import { effectiveGuildRosterSql } from "../guild/effective-roster.js";
 import { requireOperationalInstallationGuildBinding } from "../installation/guild-binding.js";
 import { pool } from "../../db.js";
 
@@ -34,10 +35,9 @@ export async function identityRepresentations(
        ON ccr.identity_id = i.identity_id
       AND ccr.character_record_id = representation.character_record_id
       AND ccr.currently_controlled = true
-     LEFT JOIN guild_roster gr
+     LEFT JOIN ${effectiveGuildRosterSql} gr
        ON gr.guild_id = representation.guild_id
       AND gr.character_record_id = representation.character_record_id
-      AND gr.currently_present = true
      LEFT JOIN wow_character_profiles wcp
        ON wcp.region = cr.region
       AND wcp.realm_id = cr.realm_id
