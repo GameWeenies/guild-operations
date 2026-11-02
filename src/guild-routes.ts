@@ -143,6 +143,41 @@ export async function registerGuildRoutes(app: FastifyInstance): Promise<void> {
     }
   });
 
+  app.post<{ Params: { applicationId: string }; Body: { rank_index?: unknown } }>(
+    "/guild/roster/applications/:applicationId/approve", async (request, reply) => {
+      const identity = await authenticatedIdentity(request.cookies[SESSION_COOKIE_NAME]);
+      if (!identity) return reply.code(401).send({ error: "not_authenticated" });
+      if (!validCharacterRecordId(request.params.applicationId) || !validRosterRank(request.body?.rank_index)) {
+        return reply.code(400).send({ error: "invalid_application_approval" });
+      }
+      try {
+        const application = await pendingRosterApplications(identity.identityId);
+        const pending = application.applications.find(
+          (row: { application_id: string }) => row.application_id === request.params.applicationId,
+        );
+        if (!pending) return reply.code(409).send({ error: "application_not_pending" });
+        await changeManualRosterMember({
+          actorIdentityId: identity.identityId,
+          characterRecordId: pending.character_record_id,
+          action: "add",
+          rankIndex: request.body!.rank_index as number,
+          applicationId: request.params.applicationId,
+        });
+        return reply.send({ applicationId: request.params.applicationId, status: "approved" });
+      } catch (error) {
+        if (error instanceof RosterApplicationError && error.code === "roster_management_forbidden") {
+          return reply.code(403).send({ error: error.code });
+        }
+        if (error instanceof ManualRosterOperationError) {
+          const status = error.code === "roster_management_forbidden" ? 403 :
+            error.code === "unknown_guild_rank" ? 404 : 409;
+          return reply.code(status).send({ error: error.code });
+        }
+        throw error;
+      }
+    },
+  );
+
   app.post("/guild/refresh", async (request, reply) => {
     const identity = await authenticatedIdentity(request.cookies[SESSION_COOKIE_NAME]);
     if (!identity) return reply.code(401).send({ error: "not_authenticated" });
