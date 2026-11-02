@@ -1,6 +1,11 @@
 import { pool } from "../../db.js";
 import { requireOperationalInstallationGuildBinding } from "../../core/installation/guild-binding.js";
 import { identityHasGuildCapability, GUILD_REFRESH_CAPABILITY } from "../../core/authority/guild-permissions.js";
+import { renderGuildRefreshSchedule, renderGuildRefreshOperation } from "./admin.js";
+import { guildRefreshSchedule } from "../../core/guild/guild-refresh-schedule.js";
+import { guildRefreshStatus } from "../../core/guild/guild-refresh-status.js";
+import { GUILD_REFRESH_SCHEDULE_CONFIGURE_CAPABILITY } from "../../core/authority/guild-permissions.js";
+import { renderGuildSettingsHeader } from "../render.js";
 import { pendingRosterApplications } from "../../core/guild/roster-applications.js";
 import { guildRankDefinitions } from "../../core/guild/guild-ranks.js";
 import { manualRosterCharacterCandidates } from "../../core/guild/manual-roster-character-candidates.js";
@@ -19,11 +24,13 @@ function escapeHtml(value: string): string {
 }
 
 export async function registerRosterMembersPage(app: FastifyInstance, assets: AssetRegistry): Promise<void> {
-  app.get("/roster", async (_request, reply) => reply.redirect("/roster/members"));
-  app.get("/roster/members", async (request, reply) => {
+  app.get("/roster", async (_request, reply) => reply.redirect("/admin/roster/members"));
+  app.get("/roster/members", async (_request, reply) => reply.redirect("/admin/roster/members"));
+  app.get("/admin/roster", async (_request, reply) => reply.redirect("/admin/roster/members"));
+  app.get("/admin/roster/members", async (request, reply) => {
     const token = request.cookies[SESSION_COOKIE_NAME];
     const identity = await authenticatedIdentity(token);
-    if (!identity) return reply.redirect("/auth/blizzard/start?return_to=%2Froster%2Fmembers");
+    if (!identity) return reply.redirect("/auth/blizzard/start?return_to=%2Fadmin%2Froster%2Fmembers");
     // Bootstrap uses the verified installation GM, not rank-derived authority:
     // an uninitialized Manual roster has no effective members or GO rank 0.
     const binding = await requireOperationalInstallationGuildBinding();
@@ -61,11 +68,11 @@ export async function registerRosterMembersPage(app: FastifyInstance, assets: As
         <p role="status" aria-live="polite" data-roster-status></p>
       </section>`;
       return reply.header("Cache-Control", "no-store").type("text/html; charset=utf-8").send(renderPage(assets, {
-        pathname: "/roster/members",
+        pathname: "/admin/roster/members",
         title: `Roster · ${viewer.guildPresentation.guildName} Guild Operations`,
         description: "Review initial guild membership.",
-        viewer, stylesheets: ["admin.css", "roster.css"], scripts: ["roster.js"],
-        header: '<div class="admin-page-header"><h1>Roster</h1><p class="lede">Members</p></div><nav aria-label="Roster sections"><a href="/roster/members">Members</a> · <a href="/roster/ranks">Ranks</a></nav>',
+        viewer, stylesheets: ["admin.css", "roster.css"], scripts: ["roster.js", "admin.js"],
+        header: `${renderGuildSettingsHeader("Roster", "Manage guild membership and ranks.")}<nav aria-label="Roster sections"><a href="/admin/roster/members" aria-current="page">Members</a> · <a href="/admin/roster/ranks">Ranks</a></nav>`,
         body: review,
       }));
     }
@@ -153,17 +160,17 @@ export async function registerRosterMembersPage(app: FastifyInstance, assets: As
       <button type="button" class="button-secondary" data-blizzard-sync-commit disabled>Switch to Blizzard Sync</button>
       <p role="status" aria-live="polite" data-blizzard-sync-status></p>
     </section>` : "";
+    const [refreshSchedule, refreshStatus, canSchedule] = await Promise.all([guildRefreshSchedule(), guildRefreshStatus(), identityHasGuildCapability(identity.identityId, GUILD_REFRESH_SCHEDULE_CONFIGURE_CAPABILITY)]);
+    const schedule = renderGuildRefreshSchedule(refreshSchedule);
+    const synchronization = `<section class="admin-section"><h2>Guild synchronization</h2><div class="settings-panel guild-synchronization-settings">${canSchedule ? schedule : schedule.replaceAll("<input ", "<input disabled ").replaceAll("<button type=\"submit\"", "<button disabled type=\"submit\"")}${renderGuildRefreshOperation(refreshStatus, canRefresh)}</div></section>`;
     const observationControls = `<section class="settings-panel" data-roster-observation>
       <h2>Blizzard roster observation</h2>
       <p>Refresh retrieves Blizzard's latest available snapshot. Blizzard may return stale or incomplete membership even after a successful refresh.</p>
       <p>Last acquired: ${comparison.observationAcquiredAt ? escapeHtml(new Date(comparison.observationAcquiredAt).toLocaleString("en-US", { timeZone: "UTC", timeZoneName: "short" })) : "No snapshot available"}.</p>
       <p>Blizzard source last modified: ${comparison.sourceLastModifiedAt ? escapeHtml(new Date(comparison.sourceLastModifiedAt).toLocaleString("en-US", { timeZone: "UTC", timeZoneName: "short" })) : "Not provided"}.</p>
       <p>${comparison.mode === "manual" ? "Manual membership and ranks remain authoritative after refreshing the Blizzard observation." : "Blizzard Sync uses the observed roster for effective membership and ranks; a refresh may change access."}</p>
-      <button type="button" class="button-secondary" data-roster-refresh${canRefresh ? "" : " disabled"}>Refresh Blizzard snapshot</button>
-      ${canRefresh ? "" : "<p>You do not have permission to refresh the guild snapshot.</p>"}
-      <p role="status" aria-live="polite" data-roster-refresh-status></p>
     </section>`;
-    const body = membersView.initialized ? `${observationControls}${membersTable}${applicantReview}${reconciliation}${syncTransition}` : `<section class="settings-panel"><h2>Members</h2><p>${comparison.manualInitialized
+    const body = membersView.initialized ? `${synchronization}${observationControls}${membersTable}${applicantReview}${reconciliation}${syncTransition}` : `<section class="settings-panel"><h2>Members</h2><p>${comparison.manualInitialized
       ? "The Manual roster has been initialized. Member management will be available in a subsequent release step."
       : "Roster initialization is not available in the current management mode."}</p></section>`;
     return reply.header("Cache-Control", "no-store").type("text/html; charset=utf-8").send(renderPage(assets, {
@@ -172,7 +179,7 @@ export async function registerRosterMembersPage(app: FastifyInstance, assets: As
       description: "Review and initialize guild membership.",
       viewer,
       stylesheets: ["admin.css", "roster.css"],
-      scripts: ["roster.js"],
+      scripts: ["roster.js", "admin.js"],
       header: '<div class="admin-page-header"><h1>Roster</h1><p class="lede">Members</p></div><nav aria-label="Roster sections"><a href="/roster/members">Members</a> · <a href="/roster/ranks">Ranks</a></nav>',
       body,
     }));
