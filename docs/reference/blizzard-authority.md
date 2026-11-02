@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document records Blizzard API evidence that informed Guild Operations' member and guild authority model. It is reference material, not the canonical definition of Guildie, authority, or persistence behavior.
+This document records Blizzard API evidence that informed Guild Operations' member and guild authority model. Blizzard guild roster snapshots can lag in-game changes substantially; their acquisition time is not proof of in-game freshness. It is reference material, not the canonical definition of Guildie, authority, or persistence behavior.
 
 Canonical contracts live in:
 
@@ -102,7 +102,7 @@ Rank `6` was unoccupied at the time of observation. Blizzard responses did not e
 
 The evidence supports two implementation assumptions used elsewhere:
 
-- numeric rank on current roster membership is Blizzard-owned truth;
+- numeric rank in the Blizzard roster is a Blizzard-owned observation, not necessarily current or effective application authority;
 - the complete rank-definition space must not be inferred only from currently occupied ranks.
 
 Current capability translation is documented in [`../infrastructure/guild-permissioning.md`](../infrastructure/guild-permissioning.md).
@@ -129,8 +129,11 @@ Character continuity
 guild continuity
     → Blizzard numeric guild_id
 
-current guild rank
-    → Blizzard numeric rank on current roster membership
+Blizzard-observed guild rank
+    → numeric rank in the acquired Blizzard roster
+
+application-effective guild rank
+    → declared rank in Manual mode; observed rank in Blizzard Sync mode
 ```
 
 Narrower Blizzard questions should be investigated only when concrete work requires them. New evidence should change canonical doctrine only when it materially changes what Guild Operations can legitimately assert.
