@@ -14,7 +14,8 @@ test("Roster is the second Guild Settings tab, not a public navigation destinati
 });
 
 test("Roster pages share the settings shell and retain legacy redirects", () => {
-  assert.match(roster, /app\.get\("\/admin\/roster\/members"/);
+  assert.match(roster, /for \(const section of \["members", "synchronization"\] as const\)/);
+  assert.match(roster, /app\.get\(`\/admin\/roster\/\$\{section\}`/);
   assert.match(admin, /app\.get\("\/admin\/roster\/ranks"/);
   assert.match(roster, /app\.get\("\/roster\/members"[^\n]*redirect\("\/admin\/roster\/members"\)/);
   assert.match(admin, /app\.get\("\/roster\/ranks"[^\n]*redirect\("\/admin\/roster\/ranks"\)/);
@@ -27,7 +28,11 @@ test("Verified GM retains a Settings entrypoint before Manual initialization", (
   assert.match(viewer, /administrationAvailable: administration\.available \|\| canRefreshGuild \|\| canInspectOperations \|\| bootstrap/);
 });
 
-test("Synchronization is on Roster Members and not General", () => {
+test("Synchronization has its own roster section, not Members or General", () => {
+  assert.match(roster, /section === "synchronization" \? `\$\{synchronization\}\$\{observationControls\}\$\{reconciliation\}\$\{syncTransition\}`/);
+  assert.match(roster, /membersView\.initialized \? `\$\{membersTable\}\$\{applicantReview\}`/);
+  assert.match(roster, /href="\/admin\/roster\/synchronization"/);
+  assert.match(admin, /href="\/admin\/roster\/synchronization"/);
   assert.match(roster, /const synchronization =/);
   assert.match(roster, /renderGuildRefreshSchedule\(refreshSchedule\)/);
   assert.match(roster, /renderGuildRefreshOperation\(refreshStatus, canRefresh\)/);
