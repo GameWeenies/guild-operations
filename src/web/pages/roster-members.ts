@@ -1,3 +1,4 @@
+import { pendingRosterApplications } from "../../core/guild/roster-applications.js";
 import { guildRankDefinitions } from "../../core/guild/guild-ranks.js";
 import { manualRosterCharacterCandidates } from "../../core/guild/manual-roster-character-candidates.js";
 import { rosterMembersView } from "../../core/guild/roster-members-view.js";
@@ -42,9 +43,9 @@ export async function registerRosterMembersPage(app: FastifyInstance, assets: As
     }
     const membersView = await rosterMembersView(identity.identityId);
     const manualControls = comparison.mode === "manual" && comparison.manualInitialized;
-    const [ranks, candidates] = manualControls
-      ? await Promise.all([guildRankDefinitions(comparison.guildId), manualRosterCharacterCandidates(identity.identityId)])
-      : [[], null];
+    const [ranks, candidates, applications] = manualControls
+      ? await Promise.all([guildRankDefinitions(comparison.guildId), manualRosterCharacterCandidates(identity.identityId), pendingRosterApplications(identity.identityId)])
+      : [[], null, null];
     const rankOptions = ranks.map((rank) => `<option value="${rank.rankIndex}">${escapeHtml(rank.displayName)}</option>`).join("");
     const viewer = await viewerForRequest(token);
     const pending = comparison.mode === "manual" && !comparison.manualInitialized && preview !== null;
@@ -105,7 +106,24 @@ export async function registerRosterMembersPage(app: FastifyInstance, assets: As
       <tbody>${memberRows || `<tr><td colspan="${manualControls ? 3 : 2}">No members in the effective roster.</td></tr>`}</tbody></table></div>
       ${manualControls ? `<div class="roster-add-member"><h3>Add member</h3><label>Character <select data-member-add-character>${(candidates?.characters ?? []).map((character) => `<option value="${escapeHtml(character.characterRecordId)}">${escapeHtml(character.name)}-${escapeHtml(character.realm ?? "Unknown realm")}</option>`).join("")}</select></label><label>Rank <select data-member-add-rank>${rankOptions}</select></label><button type="button" class="button-primary" data-member-add${candidates?.characters.length ? "" : " disabled"}>Add member</button><p role="status" aria-live="polite" data-member-add-status></p></div>` : ""}
     </section>`;
-    const body = pending ? review : (membersView.initialized ? `${membersTable}${reconciliation}` : `<section class="settings-panel"><h2>Members</h2><p>${comparison.manualInitialized
+    const applicantRows = (applications?.applications ?? []).map((application) => {
+      const character = `${escapeHtml(application.name)}-${escapeHtml(application.realm_slug || "Unknown realm")}`;
+      return `<tr data-application-id="${escapeHtml(application.application_id)}">
+        <td>${character}${application.level === null ? "" : ` (Level ${application.level})`}</td>
+        <td><div class="roster-member-controls">
+          <select data-application-rank aria-label="Rank for ${character}">${rankOptions}</select>
+          <button type="button" class="button-primary" data-application-approve${ranks.length ? "" : " disabled"}>Approve</button>
+          <button type="button" class="button-secondary" data-application-reject>Reject</button>
+          <span role="status" aria-live="polite" data-application-status></span>
+        </div></td></tr>`;
+    }).join("");
+    const applicantReview = manualControls ? `<section class="settings-panel" data-roster-applications>
+      <h2>Pending applications</h2>
+      <p>Approve a character into the Manual roster at the selected rank, or reject the application.</p>
+      ${applicantRows ? `<div class="roster-review-scroll"><table><thead><tr><th>Character-Realm (level)</th><th>Review</th></tr></thead><tbody>${applicantRows}</tbody></table></div>` :
+        "<p>No pending applications.</p>"}
+    </section>` : "";
+    const body = pending ? review : (membersView.initialized ? `${membersTable}${applicantReview}${reconciliation}` : `<section class="settings-panel"><h2>Members</h2><p>${comparison.manualInitialized
       ? "The Manual roster has been initialized. Member management will be available in a subsequent release step."
       : "Roster initialization is not available in the current management mode."}</p></section>`);
     return reply.header("Cache-Control", "no-store").type("text/html; charset=utf-8").send(renderPage(assets, {
