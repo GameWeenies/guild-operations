@@ -123,7 +123,17 @@ export async function registerRosterMembersPage(app: FastifyInstance, assets: As
       ${applicantRows ? `<div class="roster-review-scroll"><table><thead><tr><th>Character-Realm (level)</th><th>Review</th></tr></thead><tbody>${applicantRows}</tbody></table></div>` :
         "<p>No pending applications.</p>"}
     </section>` : "";
-    const body = pending ? review : (membersView.initialized ? `${membersTable}${applicantReview}${reconciliation}` : `<section class="settings-panel"><h2>Members</h2><p>${comparison.manualInitialized
+    const syncTransition = manualControls ? `<section class="settings-panel" data-roster-blizzard-sync>
+      <h2>Roster management mode</h2>
+      <p><strong>Current mode: Manual.</strong> Guild Operations manages effective membership and ranks.</p>
+      <p>Switching to Blizzard Sync makes Blizzard's last observed roster authoritative for membership and ranks. Blizzard data may be stale or incomplete, and this can immediately change access and participation. Your Manual declarations are preserved for a later return to Manual mode.</p>
+      <p>Snapshot acquired: ${comparison.observationAcquiredAt ? escapeHtml(new Date(comparison.observationAcquiredAt).toLocaleString("en-US", { timeZone: "UTC", timeZoneName: "short" })) : "Unavailable"}.
+      Blizzard source last modified: ${comparison.sourceLastModifiedAt ? escapeHtml(new Date(comparison.sourceLastModifiedAt).toLocaleString("en-US", { timeZone: "UTC", timeZoneName: "short" })) : "Not provided"}.</p>
+      <label class="roster-review-confirm"><input type="checkbox" data-blizzard-sync-acknowledge> I understand that Blizzard's roster may be stale or incomplete and switching authority may change guild access.</label>
+      <button type="button" class="button-secondary" data-blizzard-sync-commit disabled>Switch to Blizzard Sync</button>
+      <p role="status" aria-live="polite" data-blizzard-sync-status></p>
+    </section>` : "";
+    const body = pending ? review : (membersView.initialized ? `${membersTable}${applicantReview}${reconciliation}${syncTransition}` : `<section class="settings-panel"><h2>Members</h2><p>${comparison.manualInitialized
       ? "The Manual roster has been initialized. Member management will be available in a subsequent release step."
       : "Roster initialization is not available in the current management mode."}</p></section>`);
     return reply.header("Cache-Control", "no-store").type("text/html; charset=utf-8").send(renderPage(assets, {
