@@ -1,3 +1,5 @@
+import { pool } from "../db.js";
+import { installationGuildBinding } from "../core/installation/guild-binding.js";
 import { guildRankDefinitions } from "../core/guild/guild-ranks.js";
 import { controlledGuildMemberCharacters } from "../core/guild/guild-characters.js";
 import { controlledCharacterRecordIdsForIdentity } from "../core/identity/controlled-characters.js";
@@ -44,6 +46,11 @@ export async function viewerForRequest(sessionToken: string | undefined): Promis
     webPresentationContributionsForIdentity(identity.identityId),
   ]);
 
+  const binding = !administration.available && !canRefreshGuild && !canInspectOperations ? await installationGuildBinding() : null;
+  const bootstrap = binding?.authorizationKind === "guild_master" && binding.authorizedByIdentityId === identity.identityId
+    ? (await pool.query<{ pending: boolean }>("SELECT (mode = 'manual' AND manual_initialized_at IS NULL) AS pending FROM guild_roster_management WHERE guild_id = $1", [binding.guildId])).rows[0]?.pending === true
+    : false;
+
   const [controlledCharacters, characters, identityProfileIconUrl, rankDefinitions] = await Promise.all([
     characterProjections(controlledCharacterRecordIds),
     characterProjections(guildMemberCharacters.map((character) => character.characterRecordId)),
@@ -58,8 +65,8 @@ export async function viewerForRequest(sessionToken: string | undefined): Promis
     theme,
     guildPresentation: presentation,
     presentationContributions,
-    administrationAvailable: administration.available || canRefreshGuild || canInspectOperations,
-    administrationDestinations: administration.available || canRefreshGuild || canInspectOperations
+    administrationAvailable: administration.available || canRefreshGuild || canInspectOperations || bootstrap,
+    administrationDestinations: administration.available || canRefreshGuild || canInspectOperations || bootstrap
       ? [
           { label: "Guild Operations Settings", href: "/admin" },
           ...(administration.canConfigureDiscord ? [{ label: "Discord", href: "/admin/discord" }] : []),
