@@ -46,9 +46,9 @@ export const reconciliationEntriesSql = `SELECT cr.character_record_id, cr.name,
        LEFT JOIN guild_roster o ON o.guild_id = $1 AND o.character_record_id = cr.character_record_id AND o.currently_present = true
       ORDER BY cr.character_record_id`;
 
-export function reconciliationVersion(rows: readonly ReconciliationRow[]): string {
+export function reconciliationVersion(rows: readonly ReconciliationRow[], acquiredAt: Date | null): string {
   return createHash("sha256").update(JSON.stringify(
-    rows.map((row) => [row.character_record_id, row.declared_rank, row.observed_rank]),
+    [acquiredAt?.toISOString() ?? null, rows.map((row) => [row.character_record_id, row.declared_rank, row.observed_rank])],
   )).digest("hex");
 }
 
@@ -82,7 +82,7 @@ export async function rosterReconciliationPreview(actorIdentityId: string) {
     const row = details.get(difference.characterRecordId)!;
     return { ...difference, name: row.name, realm: row.realm_slug, level: row.level };
   });
-  const snapshotVersion = reconciliationVersion(rows);
+  const snapshotVersion = reconciliationVersion(rows, state.rows[0].acquired_at);
   return {
     guildId, mode: state.rows[0].mode,
     manualInitialized: state.rows[0].manual_initialized_at !== null,
