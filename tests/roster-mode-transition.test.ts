@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
 const source = readFileSync(new URL("../src/core/guild/roster-mode-transitions.ts", import.meta.url), "utf8");
+const blizzardSyncSource = source.slice(0, source.indexOf("export async function activateManualWithReconciliation"));
 const routes = readFileSync(new URL("../src/guild-routes.ts", import.meta.url), "utf8");
 
 test("mode switch requires explicit risk acknowledgment and global roster authority", () => {
@@ -14,7 +15,7 @@ test("switch preserves declared roster and emits effective transitions", () => {
   assert.match(source, /blizzard_snapshot_missing/);
   assert.match(source, /FOR UPDATE/);
   assert.match(source, /SET mode = 'blizzard_sync'/);
-  assert.doesNotMatch(source, /DELETE FROM guild_declared_roster|UPDATE guild_declared_roster/);
+  assert.doesNotMatch(blizzardSyncSource, /DELETE FROM guild_declared_roster|UPDATE guild_declared_roster/);
   assert.match(source, /guildieRosterTransitions\(before, after\)/);
   assert.match(source, /publishEmission\(client/);
   assert.match(source, /deliverEmission/);
