@@ -87,7 +87,10 @@ export async function activateManualWithReconciliation(
       throw new RosterModeTransitionError("blizzard_sync_not_active");
     }
     const rows = await loadReconciliationRows(client, guildId);
-    if (reconciliationVersion(rows) !== reviewedSnapshotVersion) {
+    const observation = await client.query<{ acquired_at: Date }>(
+      "SELECT acquired_at FROM guild_roster_observation_state WHERE guild_id = $1", [guildId],
+    );
+    if (reconciliationVersion(rows, observation.rows[0]?.acquired_at ?? null) !== reviewedSnapshotVersion) {
       throw new RosterModeTransitionError("roster_snapshot_changed");
     }
     const differences = new Map(rows.filter((row) => row.declared_rank !== row.observed_rank)
