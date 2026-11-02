@@ -243,3 +243,28 @@
     }
   });
 })();
+
+(() => {
+  const root = document.querySelector("[data-roster-observation]");
+  if (!root) return;
+  const button = root.querySelector("[data-roster-refresh]");
+  const status = root.querySelector("[data-roster-refresh-status]");
+  if (!button || button.disabled) return;
+  button.addEventListener("click", async () => {
+    if (button.disabled) return;
+    button.disabled = true;
+    status.textContent = "Requesting Blizzard roster snapshot…";
+    try {
+      const response = await fetch("/guild/refresh", {
+        method: "POST", credentials: "same-origin",
+        headers: { Accept: "application/json" },
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || `Refresh failed (HTTP ${response.status})`);
+      window.location.reload();
+    } catch (error) {
+      status.textContent = error.message;
+      button.disabled = false;
+    }
+  });
+})();
