@@ -1,3 +1,4 @@
+import { guildRefreshStatus } from "../../core/guild/guild-refresh-status.js";
 import type { FastifyInstance } from "fastify";
 import { authenticatedIdentity, SESSION_COOKIE_NAME } from "../../auth.js";
 import { effectiveGuildAuthority } from "../../core/authority/guild-permissions.js";
