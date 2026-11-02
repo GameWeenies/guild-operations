@@ -80,6 +80,14 @@ export async function canAdministerGuildCapability(identityId: string, capabilit
   return definition ? canAdministerCapabilityDefinition(identityId, definition, resolvedGuildId) : false;
 }
 
+/** Roster membership and rank assignment are global guild authority operations.
+ * Namespace-specific permission administrators must not gain membership control.
+ */
+export async function canManageGuildRoster(identityId: string, guildId?: string): Promise<boolean> {
+  const resolvedGuildId = guildId ?? (await requireOperationalInstallationGuildBinding()).guildId;
+  return hasGlobalPermissionAdministration(identityId, resolvedGuildId);
+}
+
 export async function canAdministerGuildPermissions(identityId: string, guildId?: string): Promise<boolean> {
   const resolvedGuildId = guildId ?? (await requireOperationalInstallationGuildBinding()).guildId;
   if (await hasGlobalPermissionAdministration(identityId, resolvedGuildId)) return true;
