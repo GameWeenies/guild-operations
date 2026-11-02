@@ -4,6 +4,7 @@ import test from "node:test";
 
 const render = readFileSync(new URL("../src/web/render.ts", import.meta.url), "utf8");
 const admin = readFileSync(new URL("../src/web/pages/admin.ts", import.meta.url), "utf8");
+const viewer = readFileSync(new URL("../src/web/viewer.ts", import.meta.url), "utf8");
 const roster = readFileSync(new URL("../src/web/pages/roster-members.ts", import.meta.url), "utf8");
 
 test("Roster is the second Guild Settings tab, not a public navigation destination", () => {
@@ -19,6 +20,11 @@ test("Roster pages share the settings shell and retain legacy redirects", () => 
   assert.match(admin, /app\.get\("\/roster\/ranks"[^\n]*redirect\("\/admin\/roster\/ranks"\)/);
   assert.match(roster, /renderGuildSettingsHeader\("Roster"/);
   assert.match(admin, /renderGuildSettingsHeader\("Roster"/);
+});
+
+test("Verified GM retains a Settings entrypoint before Manual initialization", () => {
+  assert.match(viewer, /binding\?\.authorizationKind === "guild_master"/);
+  assert.match(viewer, /administrationAvailable: administration\.available \|\| canRefreshGuild \|\| canInspectOperations \|\| bootstrap/);
 });
 
 test("Synchronization is on Roster Members and not General", () => {
