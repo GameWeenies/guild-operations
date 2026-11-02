@@ -1,4 +1,4 @@
-import { activateBlizzardSync, RosterModeTransitionError } from "./core/guild/roster-mode-transitions.js";
+import { activateBlizzardSync, activateManualWithReconciliation, RosterModeTransitionError } from "./core/guild/roster-mode-transitions.js";
 import { rosterReconciliationPreview } from "./core/guild/roster-reconciliation.js";
 import { manualRosterCharacterCandidates } from "./core/guild/manual-roster-character-candidates.js";
 import { submitRosterApplication, pendingRosterApplications, reviewRosterApplication, RosterApplicationError } from "./core/guild/roster-applications.js";
@@ -74,6 +74,29 @@ export async function registerGuildRoutes(app: FastifyInstance): Promise<void> {
       } catch (error) {
         if (error instanceof RosterModeTransitionError) {
           return reply.code(error.code === "roster_management_forbidden" ? 403 : 409).send({ error: error.code });
+        }
+        throw error;
+      }
+    },
+  );
+
+  app.post<{ Body: { snapshot_version?: unknown; selected_character_record_ids?: unknown } }>(
+    "/guild/roster/mode/manual", async (request, reply) => {
+      const identity = await authenticatedIdentity(request.cookies[SESSION_COOKIE_NAME]);
+      if (!identity) return reply.code(401).send({ error: "not_authenticated" });
+      const version = request.body?.snapshot_version;
+      const selected = request.body?.selected_character_record_ids;
+      if (typeof version !== "string" || !/^[a-f0-9]{64}$/.test(version) ||
+          !Array.isArray(selected) || !selected.every(validCharacterRecordId)) {
+        return reply.code(400).send({ error: "invalid_reconciliation_selection" });
+      }
+      try {
+        return reply.send(await activateManualWithReconciliation(identity.identityId, version, selected));
+      } catch (error) {
+        if (error instanceof RosterModeTransitionError) {
+          const status = error.code === "roster_management_forbidden" ? 403 :
+            error.code === "invalid_reconciliation_selection" ? 400 : 409;
+          return reply.code(status).send({ error: error.code });
         }
         throw error;
       }
