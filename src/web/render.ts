@@ -163,12 +163,13 @@ function renderActionBar(viewer: WebViewer, pathname: string): string {
       : false;
     const destinations = [
       { label: "General", href: "/admin/general" },
+      { label: "Roster", href: "/admin/roster/members" },
       { label: "Appearance", href: "/admin/appearance" },
       ...(discordAdministrationAvailable ? [{ label: "Discord", href: "/admin/discord" }] : []),
       { label: "Plugins", href: "/admin/modules" },
     ];
     const links = destinations.map((destination) => {
-      const active = pathname === destination.href ? ' aria-current="page"' : "";
+      const active = pathname === destination.href || (destination.href === "/admin/roster/members" && pathname.startsWith("/admin/roster/")) ? ' aria-current="page"' : "";
       return `<a href="${destination.href}"${active}>${destination.label}</a>`;
     }).join("");
     return `<nav class="action-bar" aria-label="Settings navigation"><div class="action-bar-inner">
@@ -177,13 +178,12 @@ function renderActionBar(viewer: WebViewer, pathname: string): string {
     </div></nav>`;
   }
 
-  const rosterActive = pathname === "/roster" || pathname.startsWith("/roster/") ? ` aria-current="page"` : "";
   const homeActive = pathname === "/" ? ' aria-current="page"' : "";
   const calendarActive = pathname === "/calendar" ? ' aria-current="page"' : "";
   const activitiesActive = pathname === "/activities" || pathname.startsWith("/activities/") ? ' aria-current="page"' : "";
   const articlesActive = pathname === "/articles" || pathname.startsWith("/articles/") ? ' aria-current="page"' : "";
   return `<nav class="action-bar" aria-label="Primary navigation"><div class="action-bar-inner">
-    <details class="mobile-nav menu-surface"><summary class="icon-control" aria-label="Open navigation"><span></span><span></span><span></span></summary><div class="menu-panel menu-panel-left mobile-nav-panel"><a href="/"${homeActive}>Home</a><a href="/calendar"${calendarActive}>Calendar</a><a href="/activities"${activitiesActive}>Activities</a><a href="/articles"${articlesActive}>Articles</a><a href="/roster/members"${rosterActive}>Roster</a></div></details>
+    <details class="mobile-nav menu-surface"><summary class="icon-control" aria-label="Open navigation"><span></span><span></span><span></span></summary><div class="menu-panel menu-panel-left mobile-nav-panel"><a href="/"${homeActive}>Home</a><a href="/calendar"${calendarActive}>Calendar</a><a href="/activities"${activitiesActive}>Activities</a><a href="/articles"${articlesActive}>Articles</a></div></details>
     <div class="desktop-nav"><a href="/"${homeActive}>Home</a><a href="/calendar"${calendarActive}>Calendar</a><a href="/activities"${activitiesActive}>Activities</a><a href="/articles"${articlesActive}>Articles</a><a href="/roster/members"${rosterActive}>Roster</a></div><div class="action-bar-spacer"></div>${renderMeControl(viewer, pathname)}
   </div></nav>`;
 }
