@@ -1,3 +1,4 @@
+import { authorizeRosterRecovery, pendingRosterRecovery, RosterRecoveryError } from "../guild/roster-recovery.js";
 import type { FastifyInstance } from "fastify";
 import { authenticatedIdentity, SESSION_COOKIE_NAME } from "../../auth.js";
 import {
@@ -12,6 +13,27 @@ export async function registerInstallationRoutes(
   app: FastifyInstance,
   options: { onOperational?: () => void | Promise<void> } = {},
 ): Promise<void> {
+  app.get("/installation/roster-recovery", async (request, reply) => {
+    const pending = await pendingRosterRecovery();
+    if (!pending) return reply.code(404).send({ error: "recovery_not_pending" });
+    return reply.send({ state: "pending_gm_authorization", requested_at: pending.requested_at });
+  });
+
+  app.post("/installation/roster-recovery/authorize", async (request, reply) => {
+    const token = request.cookies[SESSION_COOKIE_NAME];
+    const identity = await authenticatedIdentity(token);
+    if (!identity || !token) return reply.code(401).send({ error: "not_authenticated" });
+    try {
+      return reply.send(await authorizeRosterRecovery(identity.identityId, token));
+    } catch (error) {
+      if (error instanceof RosterRecoveryError) {
+        return reply.code(error.code === "verified_installation_gm_required" ||
+          error.code === "fresh_verified_gm_control_required" ? 403 : 409).send({ error: error.code });
+      }
+      throw error;
+    }
+  });
+
   app.get("/installation", async (request, reply) => {
     const binding = await installationGuildBinding();
     const identity = await authenticatedIdentity(request.cookies[SESSION_COOKIE_NAME]);
