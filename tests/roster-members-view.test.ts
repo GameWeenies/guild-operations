@@ -16,5 +16,6 @@ test("members page shows mode-aware effective roster with discrepancies only in 
   assert.match(page, /membersView\.members\.map/);
   assert.match(page, /member\.discrepancy/);
   assert.match(page, /Blizzard-observed membership is authoritative\. This roster is read-only/);
-  assert.match(page, /\$\{membersTable\}\$\{applicantReview\}\$\{reconciliation\}/);
+  assert.match(page, /membersView\.initialized \? `\$\{membersTable\}\$\{applicantReview\}`/);
+  assert.match(page, /section === "synchronization" \? `\$\{synchronization\}\$\{observationControls\}\$\{reconciliation\}\$\{syncTransition\}`/);
 });
