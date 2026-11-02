@@ -42,3 +42,11 @@ test("Roster mutation does not inherit namespace-scoped permission administratio
   assert.match(policy, /return hasGlobalPermissionAdministration\(identityId, resolvedGuildId\)/);
   assert.doesNotMatch(operation, /canAdministerGuildPermissions/);
 });
+
+test("Manual changes publish effective transitions and notify refresh observers", () => {
+  assert.match(operation, /effectiveGuildies\(client, binding.guildId\)/);
+  assert.match(operation, /guildieRosterTransitions\(before, after\)/);
+  assert.match(operation, /publishEmission\(client,/);
+  assert.match(operation, /deliverEmission\(publication\)/);
+  assert.match(operation, /publishGuildRefreshObservation/);
+});
