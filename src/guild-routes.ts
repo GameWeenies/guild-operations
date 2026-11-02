@@ -73,7 +73,7 @@ export async function registerGuildRoutes(app: FastifyInstance): Promise<void> {
           actorIdentityId: identity.identityId,
           characterRecordId: characterId,
           action,
-          ...(action !== "remove" ? { rankIndex } : {}),
+          ...(action !== "remove" && validRosterRank(rankIndex) ? { rankIndex } : {}),
         }));
       } catch (error) {
         if (error instanceof ManualRosterOperationError) {
