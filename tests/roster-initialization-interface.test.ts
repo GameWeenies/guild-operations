@@ -9,7 +9,7 @@ const server = readFileSync(new URL("../src/server.ts", import.meta.url), "utf8"
 test("initialization page uses verified operator preview", () => {
   assert.ok(page.includes("manualRosterInitializationPreview(identity.identityId)"));
   assert.ok(page.includes("roster_initialization_forbidden"));
-  assert.ok(page.includes('preview.mode === "manual" && !preview.initialized'));
+  assert.ok(page.includes('comparison.mode === "manual" && !comparison.manualInitialized'));
   assert.ok(server.includes("registerRosterMembersPage(app, webAssets)"));
 });
 
