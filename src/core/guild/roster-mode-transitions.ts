@@ -44,6 +44,20 @@ export async function activateBlizzardSync(actorIdentityId: string, acknowledged
       "SELECT 1 FROM guild_roster_observation_state WHERE guild_id = $1", [guildId],
     );
     if (!observation.rowCount) throw new RosterModeTransitionError("blizzard_snapshot_missing");
+    // Acknowledgment cannot recover access if the observed roster omits
+    // the operator. Require the operator to retain rank-zero authority.
+    const observedAdministrator = await client.query(
+      `SELECT 1 FROM guild_roster observed
+         JOIN controlled_character_roster control
+           ON control.character_record_id = observed.character_record_id
+          AND control.currently_controlled = true
+        WHERE observed.guild_id = $1 AND observed.currently_present = true
+          AND observed.rank_index = 0 AND control.identity_id = $2 LIMIT 1`,
+      [guildId, actorIdentityId],
+    );
+    if (!observedAdministrator.rowCount) {
+      throw new RosterModeTransitionError("blizzard_sync_administrator_missing");
+    }
     const before = await effectiveGuildies(client, guildId);
     await client.query(
       "UPDATE guild_roster_management SET mode = 'blizzard_sync', updated_at = now() WHERE guild_id = $1",
