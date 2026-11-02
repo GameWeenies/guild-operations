@@ -1,3 +1,4 @@
+import { activateBlizzardSync, RosterModeTransitionError } from "./core/guild/roster-mode-transitions.js";
 import { rosterReconciliationPreview } from "./core/guild/roster-reconciliation.js";
 import { manualRosterCharacterCandidates } from "./core/guild/manual-roster-character-candidates.js";
 import { submitRosterApplication, pendingRosterApplications, reviewRosterApplication, RosterApplicationError } from "./core/guild/roster-applications.js";
@@ -55,6 +56,24 @@ export async function registerGuildRoutes(app: FastifyInstance): Promise<void> {
         }
         if (error instanceof Error && /Reviewed roster selection/.test(error.message)) {
           return reply.code(400).send({ error: "invalid_roster_selection" });
+        }
+        throw error;
+      }
+    },
+  );
+
+  app.post<{ Body: { acknowledge_stale_roster_risk?: unknown } }>(
+    "/guild/roster/mode/blizzard-sync", async (request, reply) => {
+      const identity = await authenticatedIdentity(request.cookies[SESSION_COOKIE_NAME]);
+      if (!identity) return reply.code(401).send({ error: "not_authenticated" });
+      if (request.body?.acknowledge_stale_roster_risk !== true) {
+        return reply.code(400).send({ error: "risk_acknowledgment_required" });
+      }
+      try {
+        return reply.send(await activateBlizzardSync(identity.identityId, true));
+      } catch (error) {
+        if (error instanceof RosterModeTransitionError) {
+          return reply.code(error.code === "roster_management_forbidden" ? 403 : 409).send({ error: error.code });
         }
         throw error;
       }
