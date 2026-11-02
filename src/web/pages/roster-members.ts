@@ -180,7 +180,7 @@ export async function registerRosterMembersPage(app: FastifyInstance, assets: As
       viewer,
       stylesheets: ["admin.css", "roster.css"],
       scripts: ["roster.js", "admin.js"],
-      header: '<div class="admin-page-header"><h1>Roster</h1><p class="lede">Members</p></div><nav aria-label="Roster sections"><a href="/roster/members">Members</a> · <a href="/roster/ranks">Ranks</a></nav>',
+      header: `${renderGuildSettingsHeader("Roster", "Manage guild membership and ranks.")}<nav aria-label="Roster sections"><a href="/admin/roster/members" aria-current="page">Members</a> · <a href="/admin/roster/ranks">Ranks</a></nav>`,
       body,
     }));
   });
