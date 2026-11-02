@@ -216,7 +216,7 @@ characters remain important recognition surfaces because guildmates commonly rec
 
 The **subject guild** is the World of Warcraft guild represented by this Guild Operations installation.
 
-Blizzard owns whether a character is currently a member of that guild and the character's numeric guild rank. Guild Operations persists/reconciles those observations without acquiring authority over their underlying truth.
+Blizzard owns the in-game guild membership and numeric ranks that its API reports. Guild Operations retains these as observations, which may be stale, without rewriting their meaning. For application participation and permissions, Guild Operations selects an **effective roster**: its independently maintained declared membership/rank in Manual mode (the default), or the latest Blizzard-observed membership/rank in opt-in Blizzard Sync mode. Mode switching never silently copies one roster into the other.
 
 A **Guild Member character** is a derived classification:
 
@@ -228,7 +228,7 @@ character has a recognized guild rank in subjectGuild
 
 No recognized rank in the subject guild means the character is not currently a Guild Member character.
 
-This classification is derived from authoritative character state. It is not an independently authored or independently authoritative membership record.
+This classification is derived from effective subject-guild membership and character control. It is not an independently authored identity or a second membership record.
 
 ## guildie is a derived identity attribute
 
@@ -265,7 +265,7 @@ Terms such as `guildie.joined` or `guildie.left`, if retained, describe transiti
 
 ## Rank and capability
 
-Blizzard owns the numeric guild rank of each current subject-guild character. Guild Operations owns what those ranks permit inside Guild Operations.
+Blizzard owns the numeric in-game rank it reports. Guild Operations owns declared operational rank assignments in Manual mode and selects the effective numeric rank according to roster mode. Guild Operations also owns what effective ranks permit inside the application.
 
 Rank is a character-level authoritative fact. Rank-derived capability is evaluated from the subject-guild ranks of characters controlled by the relevant WoW Account identity.
 
@@ -303,7 +303,7 @@ identity attributes describe a stable identity according to the authority approp
 
 Attributes may have different authorities:
 
-- **guildie** is derived by GO from Blizzard-authoritative character facts.
+- **guildie** is derived by GO from controlled Characters and mode-selected effective subject-guild membership/rank.
 - **representation** may include choices declared by the user as well as context that GO can resolve through the appropriate authority.
 
 representation answers how an identity should be expressed in a particular context. The identity is the stable coordinate; representation is contextual expression of that coordinate. There is no requirement that one representation become the canonical presentation of an identity everywhere.
