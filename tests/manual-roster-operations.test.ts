@@ -14,7 +14,7 @@ test("Manual roster accepts only bounded rank coordinates and character UUIDs", 
 });
 
 test("Manual operations require authorization and initialized Manual mode", () => {
-  assert.match(operation, /canAdministerGuildPermissions/);
+  assert.match(operation, /canManageGuildRoster/);
   assert.match(operation, /manual_initialized_at/);
   assert.match(operation, /mode !== "manual"/);
   assert.match(operation, /FOR UPDATE/);
@@ -34,4 +34,11 @@ test("Member API validates inputs and requires an authenticated session", () => 
   assert.match(routes, /authenticatedIdentity\(request.cookies\[SESSION_COOKIE_NAME\]\)/);
   assert.match(routes, /validCharacterRecordId\(characterId\)/);
   assert.match(routes, /validRosterRank\(rankIndex\)/);
+});
+
+test("Roster mutation does not inherit namespace-scoped permission administration", () => {
+  const policy = readFileSync(new URL("../src/core/authority/guild-capability-policy.ts", import.meta.url), "utf8");
+  assert.match(policy, /export async function canManageGuildRoster/);
+  assert.match(policy, /return hasGlobalPermissionAdministration\(identityId, resolvedGuildId\)/);
+  assert.doesNotMatch(operation, /canAdministerGuildPermissions/);
 });
