@@ -99,7 +99,7 @@ export async function registerRosterMembersPage(app: FastifyInstance, assets: As
     </section>`;
     const body = pending ? review : (membersView.initialized ? `${membersTable}${reconciliation}` : `<section class="settings-panel"><h2>Members</h2><p>${comparison.manualInitialized
       ? "The Manual roster has been initialized. Member management will be available in a subsequent release step."
-      : "Roster initialization is not available in the current management mode."}</p></section>`;
+      : "Roster initialization is not available in the current management mode."}</p></section>`);
     return reply.header("Cache-Control", "no-store").type("text/html; charset=utf-8").send(renderPage(assets, {
       pathname: "/roster/members",
       title: `Roster · ${viewer.guildPresentation.guildName} Guild Operations`,
