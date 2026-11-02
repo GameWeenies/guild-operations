@@ -23,14 +23,19 @@ function escapeHtml(value: string): string {
     .replaceAll('"', "&quot;").replaceAll("'", "&#39;");
 }
 
+function rosterNavigation(section: "members" | "synchronization"): string {
+  return `<nav aria-label="Roster sections" class="roster-section-navigation"><a href="/admin/roster/members"${section === "members" ? ' aria-current="page"' : ""}>Members</a><a href="/admin/roster/ranks">Ranks</a><a href="/admin/roster/synchronization"${section === "synchronization" ? ' aria-current="page"' : ""}>Synchronization</a></nav>`;
+}
+
 export async function registerRosterMembersPage(app: FastifyInstance, assets: AssetRegistry): Promise<void> {
   app.get("/roster", async (_request, reply) => reply.redirect("/admin/roster/members"));
   app.get("/roster/members", async (_request, reply) => reply.redirect("/admin/roster/members"));
   app.get("/admin/roster", async (_request, reply) => reply.redirect("/admin/roster/members"));
-  app.get("/admin/roster/members", async (request, reply) => {
+  for (const section of ["members", "synchronization"] as const) {
+  app.get(`/admin/roster/${section}`, async (request, reply) => {
     const token = request.cookies[SESSION_COOKIE_NAME];
     const identity = await authenticatedIdentity(token);
-    if (!identity) return reply.redirect("/auth/blizzard/start?return_to=%2Fadmin%2Froster%2Fmembers");
+    if (!identity) return reply.redirect(`/auth/blizzard/start?return_to=%2Fadmin%2Froster%2F${section}`);
     // Bootstrap uses the verified installation GM, not rank-derived authority:
     // an uninitialized Manual roster has no effective members or GO rank 0.
     const binding = await requireOperationalInstallationGuildBinding();
@@ -40,6 +45,7 @@ export async function registerRosterMembersPage(app: FastifyInstance, assets: As
     );
     if (!state.rowCount) throw new Error("roster_management_missing");
     const bootstrap = state.rows[0].mode === "manual" && !state.rows[0].manual_initialized_at;
+    if (bootstrap && section === "synchronization") return reply.redirect("/admin/roster/members");
     if (bootstrap) {
       let preview;
       try {
@@ -72,7 +78,7 @@ export async function registerRosterMembersPage(app: FastifyInstance, assets: As
         title: `Roster · ${viewer.guildPresentation.guildName} Guild Operations`,
         description: "Review initial guild membership.",
         viewer, stylesheets: ["admin.css", "roster.css"], scripts: ["roster.js", "admin.js"],
-        header: `${renderGuildSettingsHeader("Roster", "Manage guild membership and ranks.")}<nav aria-label="Roster sections"><a href="/admin/roster/members" aria-current="page">Members</a> · <a href="/admin/roster/ranks">Ranks</a></nav>`,
+        header: `${renderGuildSettingsHeader("Roster", "Manage guild membership and ranks.")}${rosterNavigation(section)}`,
         body: review,
       }));
     }
@@ -160,9 +166,11 @@ export async function registerRosterMembersPage(app: FastifyInstance, assets: As
       <button type="button" class="button-secondary" data-blizzard-sync-commit disabled>Switch to Blizzard Sync</button>
       <p role="status" aria-live="polite" data-blizzard-sync-status></p>
     </section>` : "";
-    const [refreshSchedule, refreshStatus, canSchedule] = await Promise.all([guildRefreshSchedule(), guildRefreshStatus(), identityHasGuildCapability(identity.identityId, GUILD_REFRESH_SCHEDULE_CONFIGURE_CAPABILITY)]);
-    const schedule = renderGuildRefreshSchedule(refreshSchedule);
-    const synchronization = `<section class="admin-section"><h2>Guild synchronization</h2><div class="settings-panel guild-synchronization-settings">${canSchedule ? schedule : schedule.replaceAll("<input ", "<input disabled ").replaceAll("<button type=\"submit\"", "<button disabled type=\"submit\"")}${renderGuildRefreshOperation(refreshStatus, canRefresh)}</div></section>`;
+    const [refreshSchedule, refreshStatus, canSchedule] = section === "synchronization"
+      ? await Promise.all([guildRefreshSchedule(), guildRefreshStatus(), identityHasGuildCapability(identity.identityId, GUILD_REFRESH_SCHEDULE_CONFIGURE_CAPABILITY)])
+      : [null, null, false] as const;
+    const schedule = refreshSchedule ? renderGuildRefreshSchedule(refreshSchedule) : "";
+    const synchronization = refreshStatus ? `<section class="admin-section"><h2>Guild synchronization</h2><div class="settings-panel guild-synchronization-settings">${canSchedule ? schedule : schedule.replaceAll("<input ", "<input disabled ").replaceAll("<button type=\"submit\"", "<button disabled type=\"submit\"")}${renderGuildRefreshOperation(refreshStatus, canRefresh)}</div></section>` : "";
     const observationControls = `<section class="settings-panel" data-roster-observation>
       <h2>Blizzard roster observation</h2>
       <p>Refresh retrieves Blizzard's latest available snapshot. Blizzard may return stale or incomplete membership even after a successful refresh.</p>
@@ -170,18 +178,19 @@ export async function registerRosterMembersPage(app: FastifyInstance, assets: As
       <p>Blizzard source last modified: ${comparison.sourceLastModifiedAt ? escapeHtml(new Date(comparison.sourceLastModifiedAt).toLocaleString("en-US", { timeZone: "UTC", timeZoneName: "short" })) : "Not provided"}.</p>
       <p>${comparison.mode === "manual" ? "Manual membership and ranks remain authoritative after refreshing the Blizzard observation." : "Blizzard Sync uses the observed roster for effective membership and ranks; a refresh may change access."}</p>
     </section>`;
-    const body = membersView.initialized ? `${synchronization}${observationControls}${membersTable}${applicantReview}${reconciliation}${syncTransition}` : `<section class="settings-panel"><h2>Members</h2><p>${comparison.manualInitialized
+    const body = section === "synchronization" ? `${synchronization}${observationControls}${reconciliation}${syncTransition}` : membersView.initialized ? `${membersTable}${applicantReview}` : `<section class="settings-panel"><h2>Members</h2><p>${comparison.manualInitialized
       ? "The Manual roster has been initialized. Member management will be available in a subsequent release step."
       : "Roster initialization is not available in the current management mode."}</p></section>`;
     return reply.header("Cache-Control", "no-store").type("text/html; charset=utf-8").send(renderPage(assets, {
-      pathname: "/roster/members",
-      title: `Roster · ${viewer.guildPresentation.guildName} Guild Operations`,
-      description: "Review and initialize guild membership.",
+      pathname: `/admin/roster/${section}`,
+      title: `Roster ${section === "members" ? "Members" : "Synchronization"} · ${viewer.guildPresentation.guildName} Guild Operations`,
+      description: section === "members" ? "Manage guild membership." : "Manage Blizzard synchronization and roster authority.",
       viewer,
       stylesheets: ["admin.css", "roster.css"],
       scripts: ["roster.js", "admin.js"],
-      header: `${renderGuildSettingsHeader("Roster", "Manage guild membership and ranks.")}<nav aria-label="Roster sections"><a href="/admin/roster/members" aria-current="page">Members</a> · <a href="/admin/roster/ranks">Ranks</a></nav>`,
+      header: `${renderGuildSettingsHeader("Roster", "Manage guild membership and ranks.")}${rosterNavigation(section)}`,
       body,
     }));
   });
+  }
 }
