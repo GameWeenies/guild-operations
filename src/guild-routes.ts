@@ -1,3 +1,4 @@
+import { changeManualRosterMember, ManualRosterOperationError, validCharacterRecordId, validRosterRank } from "./core/guild/manual-roster-operations.js";
 import type { FastifyInstance } from "fastify";
 import { manualRosterInitializationPreview, commitManualRosterInitialization, RosterInitializationConflict } from "./core/guild/roster-initialization-operation.js";
 import { authenticatedIdentity, SESSION_COOKIE_NAME } from "./auth.js";
@@ -51,6 +52,35 @@ export async function registerGuildRoutes(app: FastifyInstance): Promise<void> {
         }
         if (error instanceof Error && /Reviewed roster selection/.test(error.message)) {
           return reply.code(400).send({ error: "invalid_roster_selection" });
+        }
+        throw error;
+      }
+    },
+  );
+
+  app.post<{ Body: { character_record_id?: unknown; action?: unknown; rank_index?: unknown } }>(
+    "/guild/roster/members", async (request, reply) => {
+      const identity = await authenticatedIdentity(request.cookies[SESSION_COOKIE_NAME]);
+      if (!identity) return reply.code(401).send({ error: "not_authenticated" });
+      const { character_record_id: characterId, action, rank_index: rankIndex } = request.body ?? {};
+      if (!validCharacterRecordId(characterId) ||
+        (action !== "add" && action !== "remove" && action !== "rank") ||
+        (action !== "remove" && !validRosterRank(rankIndex))) {
+        return reply.code(400).send({ error: "invalid_roster_member_operation" });
+      }
+      try {
+        return reply.send(await changeManualRosterMember({
+          actorIdentityId: identity.identityId,
+          characterRecordId: characterId,
+          action,
+          ...(action !== "remove" ? { rankIndex } : {}),
+        }));
+      } catch (error) {
+        if (error instanceof ManualRosterOperationError) {
+          const status = error.code === "roster_management_forbidden" ? 403 :
+            error.code === "invalid_roster_member_operation" ? 400 :
+            error.code === "unknown_character" || error.code === "unknown_guild_rank" ? 404 : 409;
+          return reply.code(status).send({ error: error.code });
         }
         throw error;
       }
