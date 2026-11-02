@@ -97,7 +97,7 @@ export async function registerRosterMembersPage(app: FastifyInstance, assets: As
       <div class="roster-review-scroll"><table><thead><tr><th>Character-Realm (level)</th><th>Rank</th></tr></thead>
       <tbody>${memberRows || `<tr><td colspan="2">No members in the effective roster.</td></tr>`}</tbody></table></div>
     </section>`;
-    const body = pending ? review : reconciliation || (membersView.initialized ? membersTable : `<section class="settings-panel"><h2>Members</h2><p>${comparison.manualInitialized
+    const body = pending ? review : (membersView.initialized ? `${membersTable}${reconciliation}` : `<section class="settings-panel"><h2>Members</h2><p>${comparison.manualInitialized
       ? "The Manual roster has been initialized. Member management will be available in a subsequent release step."
       : "Roster initialization is not available in the current management mode."}</p></section>`;
     return reply.header("Cache-Control", "no-store").type("text/html; charset=utf-8").send(renderPage(assets, {
