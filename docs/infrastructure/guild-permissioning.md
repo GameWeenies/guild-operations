@@ -12,7 +12,7 @@ Capabilities are derived at use time rather than embedded permanently in the Gui
 
 ## Rank definitions
 
-`guild_rank_definitions` attaches Guild Operations metadata to Blizzard numeric rank indexes. `rank_index` remains the authority coordinate. Display names and other Guild Operations presentation are mutable metadata.
+`guild_rank_definitions` attaches Guild Operations metadata to numeric guild rank indexes shared by declared and observed rosters. `rank_index` remains the authority coordinate. Display names and other Guild Operations presentation are mutable metadata.
 
 Guild roster synchronization may establish definitions for newly observed ranks without overwriting configured metadata. The available rank space must not be inferred only from ranks occupied in one roster observation.
 
@@ -31,20 +31,20 @@ The registration seam is intentionally application-facing rather than web-facing
 ```text
 current Guildie effective authority
         ↓
-Blizzard numeric rank
+mode-selected effective numeric rank
         ↓
 explicit capability grants
         ↓
 global authorization decision
 ```
 
-Capability sets are explicit. The resolver does not assume implicit capability inheritance from numeric rank ordering. A configurable capability's policy is therefore the explicit array of permitted Blizzard rank indexes.
+Capability sets are explicit. The resolver does not assume implicit capability inheritance from numeric rank ordering. A configurable capability's policy is therefore the explicit array of permitted effective rank indexes.
 
 Global permission policy machinery owns reading and replacing those rank arrays. Modules consume the resulting global authority rather than maintaining their own rank maps.
 
 ## Permission administration root authority
 
-Permission administration is deliberately not another configurable capability. In supported customer topology, current Blizzard Guild Master rank `0` may administer capability-to-rank policy innately.
+Permission administration is deliberately not another configurable capability. In supported customer topology, current effective rank `0` may administer capability-to-rank policy innately. Installation GM verification is a separate Blizzard-backed trust anchor and cannot be conferred by a Manual roster rank.
 
 No editable capability grant can remove rank 0's ability to administer permission policy or manufacture that root authority for another rank.
 
@@ -52,9 +52,9 @@ No editable capability grant can remove rank 0's ability to administer permissio
 
 Development topology may designate one Guildie through `DEVELOPMENT_AUTHORITY_GUILDIE_ID`. The development Compose topology explicitly enables this seam; supported customer topology does not.
 
-The designated development Guildie satisfies the same inherent application authority checks as a current Blizzard Guild Master. This exists so development can exercise GM-authorized workflows when the developer's real guild character is not rank 0.
+The designated development Guildie satisfies the same inherent application authority checks as an effective rank-zero Guildie. This exists so development can exercise GM-authorized workflows when the developer's real guild character is not rank 0.
 
-This override is application authority only. It does not synthesize a guild rank, add entries to `guild_rank_capabilities`, or rewrite Blizzard-observed membership or rank facts. Effective authority continues to report the Guildie's real Blizzard rank.
+This override is application authority only. It does not synthesize a guild rank, add entries to `guild_rank_capabilities`, or rewrite Blizzard-observed membership or rank facts. Effective authority continues to report the Guildie's mode-selected effective rank.
 
 Host or deployment control is not guild authority. The development override is development machinery, not a supported customer/deployer ownership mechanism. Clean-room release validation must exercise the real rank-0 Guild Master authorization path without this override.
 
