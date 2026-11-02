@@ -172,3 +172,40 @@
     });
   }
 })();
+
+(() => {
+  const root = document.querySelector("[data-roster-applications]");
+  if (!root) return;
+  for (const row of root.querySelectorAll("[data-application-id]")) {
+    const approve = row.querySelector("[data-application-approve]");
+    const reject = row.querySelector("[data-application-reject]");
+    const rank = row.querySelector("[data-application-rank]");
+    const status = row.querySelector("[data-application-status]");
+    const perform = async (action) => {
+      if (action === "reject" && !window.confirm("Reject this guild roster application?")) return;
+      approve.disabled = true;
+      reject.disabled = true;
+      rank.disabled = true;
+      status.textContent = action === "approve" ? "Approving…" : "Rejecting…";
+      try {
+        const response = await fetch(`/guild/roster/applications/${encodeURIComponent(row.dataset.applicationId)}/${action}`, {
+          method: "POST", credentials: "same-origin",
+          ...(action === "approve" ? {
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ rank_index: Number(rank.value) }),
+          } : {}),
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(result.error || "Application review failed");
+        window.location.reload();
+      } catch (error) {
+        status.textContent = error.message;
+        approve.disabled = !rank.options.length;
+        reject.disabled = false;
+        rank.disabled = false;
+      }
+    };
+    approve.addEventListener("click", () => perform("approve"));
+    reject.addEventListener("click", () => perform("reject"));
+  }
+})();
