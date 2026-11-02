@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { pool } from "../../db.js";
+import type { PoolClient } from "pg";
 import { requireOperationalInstallationGuildBinding } from "../installation/guild-binding.js";
 import { canManageGuildRoster } from "../authority/guild-capability-policy.js";
 
@@ -28,6 +29,34 @@ export function compareRosterEntries(
   return differences;
 }
 
+export type ReconciliationRow = {
+  character_record_id: string; name: string; realm_slug: string | null; level: number | null;
+  declared_rank: number | null; observed_rank: number | null;
+};
+
+export const reconciliationEntriesSql = `SELECT cr.character_record_id, cr.name, cr.realm_slug, cr.level,
+            d.rank_index AS declared_rank, o.rank_index AS observed_rank
+       FROM character_roster cr
+       JOIN (
+         SELECT character_record_id FROM guild_declared_roster WHERE guild_id = $1
+         UNION
+         SELECT character_record_id FROM guild_roster WHERE guild_id = $1 AND currently_present = true
+       ) members ON members.character_record_id = cr.character_record_id
+       LEFT JOIN guild_declared_roster d ON d.guild_id = $1 AND d.character_record_id = cr.character_record_id
+       LEFT JOIN guild_roster o ON o.guild_id = $1 AND o.character_record_id = cr.character_record_id AND o.currently_present = true
+      ORDER BY cr.character_record_id`;
+
+export function reconciliationVersion(rows: readonly ReconciliationRow[]): string {
+  return createHash("sha256").update(JSON.stringify(
+    rows.map((row) => [row.character_record_id, row.declared_rank, row.observed_rank]),
+  )).digest("hex");
+}
+
+export async function loadReconciliationRows(client: Pick<PoolClient, "query">, guildId: string): Promise<ReconciliationRow[]> {
+  const result = await client.query<ReconciliationRow>(reconciliationEntriesSql, [guildId]);
+  return result.rows;
+}
+
 /** Read-only comparison. Neither roster nor management mode is modified. */
 export async function rosterReconciliationPreview(actorIdentityId: string) {
   const { guildId } = await requireOperationalInstallationGuildBinding();
@@ -41,36 +70,19 @@ export async function rosterReconciliationPreview(actorIdentityId: string) {
       WHERE m.guild_id = $1`, [guildId],
   );
   if (!state.rowCount) throw new Error("roster_management_missing");
-  const entries = await pool.query<{
-    character_record_id: string; name: string; realm_slug: string | null; level: number | null;
-    declared_rank: number | null; observed_rank: number | null;
-  }>(
-    `SELECT cr.character_record_id, cr.name, cr.realm_slug, cr.level,
-            d.rank_index AS declared_rank, o.rank_index AS observed_rank
-       FROM character_roster cr
-       JOIN (
-         SELECT character_record_id FROM guild_declared_roster WHERE guild_id = $1
-         UNION
-         SELECT character_record_id FROM guild_roster WHERE guild_id = $1 AND currently_present = true
-       ) members ON members.character_record_id = cr.character_record_id
-       LEFT JOIN guild_declared_roster d ON d.guild_id = $1 AND d.character_record_id = cr.character_record_id
-       LEFT JOIN guild_roster o ON o.guild_id = $1 AND o.character_record_id = cr.character_record_id AND o.currently_present = true
-      ORDER BY cr.character_record_id`, [guildId],
-  );
+  const rows = await loadReconciliationRows(pool, guildId);
   const declared = new Map<string, number>();
   const observed = new Map<string, number>();
-  for (const row of entries.rows) {
+  for (const row of rows) {
     if (row.declared_rank !== null) declared.set(row.character_record_id, row.declared_rank);
     if (row.observed_rank !== null) observed.set(row.character_record_id, row.observed_rank);
   }
-  const details = new Map(entries.rows.map((row) => [row.character_record_id, row]));
+  const details = new Map(rows.map((row) => [row.character_record_id, row]));
   const differences: RosterDiscrepancy[] = compareRosterEntries(declared, observed).map((difference) => {
     const row = details.get(difference.characterRecordId)!;
     return { ...difference, name: row.name, realm: row.realm_slug, level: row.level };
   });
-  const snapshotVersion = createHash("sha256").update(JSON.stringify(
-    entries.rows.map((row) => [row.character_record_id, row.declared_rank, row.observed_rank]),
-  )).digest("hex");
+  const snapshotVersion = reconciliationVersion(rows);
   return {
     guildId, mode: state.rows[0].mode,
     manualInitialized: state.rows[0].manual_initialized_at !== null,
