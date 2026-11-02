@@ -77,9 +77,10 @@ export async function authorizeInstallationRebind(identityId: string, sessionTok
         AND ccr.last_seen_at >= sess.created_at - interval '5 seconds'`,
     [identityId, tokenHash],
   );
-  if (!guildMasterCharacters.some((gm) =>
+  const verifiedGm = guildMasterCharacters.find((gm) =>
     owned.rows.some((row) => row.region === gm.region
-      && row.realm_id === gm.realmId && row.character_id === gm.characterId))) {
+      && row.realm_id === gm.realmId && row.character_id === gm.characterId));
+  if (!verifiedGm) {
     throw new Error("Current destination Guild Master authority is required");
   }
 
@@ -97,6 +98,12 @@ export async function authorizeInstallationRebind(identityId: string, sessionTok
     );
     if (!activeRequest.rowCount) return { guildId: binding.guild_id, changed: false };
 
+    await client.query("UPDATE roster_recovery_requests SET cancelled_at = now() WHERE guild_id = $1 AND completed_at IS NULL AND cancelled_at IS NULL", [binding.guild_id]);
+    const verifiedCharacter = await client.query<{ character_record_id: string }>(
+      "SELECT character_record_id FROM character_roster WHERE region = $1 AND realm_id = $2 AND character_id = $3 LIMIT 1",
+      [verifiedGm.region, verifiedGm.realmId, verifiedGm.characterId],
+    );
+    if (!verifiedCharacter.rows[0]) throw new Error("Verified destination GM character record is missing");
     const previousGuild = await client.query<{ name: string; realm_slug: string; region: string }>(
       "SELECT name, realm_slug, region FROM guilds WHERE guild_id = $1 FOR UPDATE",
       [binding.guild_id],
@@ -170,9 +177,9 @@ export async function authorizeInstallationRebind(identityId: string, sessionTok
       `UPDATE installation_guild_binding SET
          guild_id=$1, bound_at=now(), bound_by_identity_id=$2,
          authorized_at=now(), authorized_by_identity_id=$2,
-         authorization_kind='guild_master'
+         authorization_kind='guild_master', verified_gm_character_record_id=$3
        WHERE singleton=true`,
-      [destinationId, identityId],
+      [destinationId, identityId, verifiedCharacter.rows[0].character_record_id],
     );
     await client.query(
       `INSERT INTO installation_guild_rebindings
