@@ -51,7 +51,7 @@ export async function registerRosterMembersPage(app: FastifyInstance, assets: As
       ).join("");
       const review = `<section class="settings-panel" data-roster-review data-snapshot-version="${escapeHtml(preview.snapshotVersion)}">
         <h2>Review initial membership</h2>
-        <p>Blizzard's roster may be incomplete or stale. Select only characters you want to include in Guild Operations. Their observed ranks will be imported; missing characters can be added after initialization.</p>
+        <p>Blizzard's roster may be incomplete or stale. Select only characters you want to include in Guild Operations. Their observed ranks will be imported; missing characters can be added after initialization. The character used to verify the Guild Master will be included as Rank 0 regardless of this selection, to establish initial operational administration.</p>
         <p><strong>${preview.members.length}</strong> Blizzard-observed characters · <strong data-roster-selected>${preview.members.length}</strong> selected</p>
         <div class="roster-review-actions"><button type="button" class="button-secondary" data-roster-select-all>Select all</button>
         <button type="button" class="button-secondary" data-roster-clear>Clear selection</button></div>
