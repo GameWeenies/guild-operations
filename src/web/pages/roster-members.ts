@@ -1,3 +1,5 @@
+import { guildRankDefinitions } from "../../core/guild/guild-ranks.js";
+import { manualRosterCharacterCandidates } from "../../core/guild/manual-roster-character-candidates.js";
 import { rosterMembersView } from "../../core/guild/roster-members-view.js";
 import { rosterReconciliationPreview } from "../../core/guild/roster-reconciliation.js";
 import type { FastifyInstance } from "fastify";
@@ -39,6 +41,11 @@ export async function registerRosterMembersPage(app: FastifyInstance, assets: As
       }
     }
     const membersView = await rosterMembersView(identity.identityId);
+    const manualControls = comparison.mode === "manual" && comparison.manualInitialized;
+    const [ranks, candidates] = manualControls
+      ? await Promise.all([guildRankDefinitions(comparison.guildId), manualRosterCharacterCandidates(identity.identityId)])
+      : [[], null];
+    const rankOptions = ranks.map((rank) => `<option value="${rank.rankIndex}">${escapeHtml(rank.displayName)}</option>`).join("");
     const viewer = await viewerForRequest(token);
     const pending = comparison.mode === "manual" && !comparison.manualInitialized && preview !== null;
     const rows = (preview?.members ?? []).map((member) =>
@@ -88,14 +95,15 @@ export async function registerRosterMembersPage(app: FastifyInstance, assets: As
       const discrepancy = member.discrepancy
         ? ` <span title="Blizzard observed: ${member.observedRank === null ? "Not present" : `Rank ${member.observedRank}`}. Guild Operations declared: Rank ${member.rankIndex}.">⚠</span>`
         : "";
+      const controls = manualControls ? `<td><div class="roster-member-controls" data-member-id="${escapeHtml(member.characterRecordId)}"><select aria-label="Rank for ${name}" data-member-rank>${ranks.map((rank) => `<option value="${rank.rankIndex}"${rank.rankIndex === member.rankIndex ? " selected" : ""}>${escapeHtml(rank.displayName)}</option>`).join("")}</select><button type="button" class="button-secondary" data-member-save disabled>Save rank</button><button type="button" class="button-secondary" data-member-remove>Remove</button><span role="status" aria-live="polite" data-member-status></span></div></td>` : "";
       return `<tr><td>${name} ${member.level === null ? "" : `(Level ${member.level})`}</td>
-        <td>${escapeHtml(member.rankDisplayName ?? `Rank ${member.rankIndex}`)}${discrepancy}</td>
-        </tr>`;
+        <td>${escapeHtml(member.rankDisplayName ?? `Rank ${member.rankIndex}`)}${discrepancy}</td>${controls}</tr>`;
     }).join("");
-    const membersTable = `<section class="settings-panel"><h2>Members</h2>
+    const membersTable = `<section class="settings-panel" data-roster-members><h2>Members</h2>
       <p>${membersView.mode === "manual" ? "Guild Operations declared membership is authoritative." : "Blizzard-observed membership is authoritative. This roster is read-only."}</p>
-      <div class="roster-review-scroll"><table><thead><tr><th>Character-Realm (level)</th><th>Rank</th></tr></thead>
-      <tbody>${memberRows || `<tr><td colspan="2">No members in the effective roster.</td></tr>`}</tbody></table></div>
+      <div class="roster-review-scroll"><table><thead><tr><th>Character-Realm (level)</th><th>Rank</th>${manualControls ? "<th>Actions</th>" : ""}</tr></thead>
+      <tbody>${memberRows || `<tr><td colspan="${manualControls ? 3 : 2}">No members in the effective roster.</td></tr>`}</tbody></table></div>
+      ${manualControls ? `<div class="roster-add-member"><h3>Add member</h3><label>Character <select data-member-add-character>${(candidates?.characters ?? []).map((character) => `<option value="${escapeHtml(character.characterRecordId)}">${escapeHtml(character.name)}-${escapeHtml(character.realm ?? "Unknown realm")}</option>`).join("")}</select></label><label>Rank <select data-member-add-rank>${rankOptions}</select></label><button type="button" class="button-primary" data-member-add${candidates?.characters.length ? "" : " disabled"}>Add member</button><p role="status" aria-live="polite" data-member-add-status></p></div>` : ""}
     </section>`;
     const body = pending ? review : (membersView.initialized ? `${membersTable}${reconciliation}` : `<section class="settings-panel"><h2>Members</h2><p>${comparison.manualInitialized
       ? "The Manual roster has been initialized. Member management will be available in a subsequent release step."
