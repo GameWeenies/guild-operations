@@ -90,12 +90,12 @@ export async function registerRosterMembersPage(app: FastifyInstance, assets: As
         : "";
       return `<tr><td>${name} ${member.level === null ? "" : `(Level ${member.level})`}</td>
         <td>${escapeHtml(member.rankDisplayName ?? `Rank ${member.rankIndex}`)}${discrepancy}</td>
-        ${membersView.mode === "manual" ? "<td>—</td>" : ""}</tr>`;
+        </tr>`;
     }).join("");
     const membersTable = `<section class="settings-panel"><h2>Members</h2>
       <p>${membersView.mode === "manual" ? "Guild Operations declared membership is authoritative." : "Blizzard-observed membership is authoritative. This roster is read-only."}</p>
-      <div class="roster-review-scroll"><table><thead><tr><th>Character-Realm (level)</th><th>Rank</th>${membersView.mode === "manual" ? "<th>Actions</th>" : ""}</tr></thead>
-      <tbody>${memberRows || `<tr><td colspan="${membersView.mode === "manual" ? 3 : 2}">No members in the effective roster.</td></tr>`}</tbody></table></div>
+      <div class="roster-review-scroll"><table><thead><tr><th>Character-Realm (level)</th><th>Rank</th></tr></thead>
+      <tbody>${memberRows || `<tr><td colspan="2">No members in the effective roster.</td></tr>`}</tbody></table></div>
     </section>`;
     const body = pending ? review : reconciliation || (membersView.initialized ? membersTable : `<section class="settings-panel"><h2>Members</h2><p>${comparison.manualInitialized
       ? "The Manual roster has been initialized. Member management will be available in a subsequent release step."
