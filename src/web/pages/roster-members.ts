@@ -26,9 +26,19 @@ export async function registerRosterMembersPage(app: FastifyInstance, assets: As
       }
       throw error;
     }
-    const preview = comparison.mode === "manual" ? await manualRosterInitializationPreview(identity.identityId) : null;
+    let preview = null;
+    if (comparison.mode === "manual" && !comparison.manualInitialized) {
+      try {
+        preview = await manualRosterInitializationPreview(identity.identityId);
+      } catch (error) {
+        if (error instanceof Error && error.message === "roster_initialization_forbidden") {
+          return reply.code(403).send({ error: "roster_initialization_forbidden" });
+        }
+        throw error;
+      }
+    }
     const viewer = await viewerForRequest(token);
-    const pending = preview !== null && !preview.initialized;
+    const pending = comparison.mode === "manual" && !comparison.manualInitialized && preview !== null;
     const rows = (preview?.members ?? []).map((member) =>
       `<tr><td><label><input type="checkbox" name="member" value="${escapeHtml(member.characterRecordId)}" checked>
         <span>${escapeHtml(member.name)}-${escapeHtml(member.realm || "Unknown realm")}</span></label></td>
@@ -71,7 +81,7 @@ export async function registerRosterMembersPage(app: FastifyInstance, assets: As
         <p role="status" aria-live="polite" data-reconciliation-status></p>
       </section>`;
     }
-    const body = pending ? review : reconciliation || `<section class="settings-panel"><h2>Members</h2><p>${preview?.initialized
+    const body = pending ? review : reconciliation || `<section class="settings-panel"><h2>Members</h2><p>${comparison.manualInitialized
       ? "The Manual roster has been initialized. Member management will be available in a subsequent release step."
       : "Roster initialization is not available in the current management mode."}</p></section>`;
     return reply.header("Cache-Control", "no-store").type("text/html; charset=utf-8").send(renderPage(assets, {
