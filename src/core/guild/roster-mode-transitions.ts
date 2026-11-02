@@ -1,3 +1,4 @@
+import { hasDeclaredRosterAdministrator } from "./manual-admin-continuity.js";
 import { loadReconciliationRows, reconciliationVersion } from "./roster-reconciliation.js";
 import { validCharacterRecordId } from "./manual-roster-operations.js";
 import { withTransaction } from "../../db.js";
@@ -117,6 +118,9 @@ export async function activateManualWithReconciliation(
           [guildId, characterId, observedRank],
         );
       }
+    }
+    if (!await hasDeclaredRosterAdministrator(client, guildId)) {
+      throw new RosterModeTransitionError("last_roster_administrator_required");
     }
     await client.query(
       "UPDATE guild_roster_management SET mode = 'manual', updated_at = now() WHERE guild_id = $1",
