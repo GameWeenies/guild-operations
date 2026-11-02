@@ -22,8 +22,8 @@ Web, Discord, and future WoW-facing integrations are projections or interaction 
 
 Authority remains with whoever can legitimately establish the fact:
 
-- **Blizzard** owns authenticated account control, current WoW guild membership, Characters, and numeric guild rank.
-- **Guild Operations** owns meanings and procedures established by the guild outside WoW.
+- **Blizzard** owns authenticated account control, Characters, and the in-game guild membership and numeric ranks it reports. Those roster reports are retained as observations and may be stale.
+- **Guild Operations** owns meanings and procedures established by the guild outside WoW, including its declared operational roster in Manual mode and the effective membership/rank selection used by application consumers.
 - **Human guild members** remain authoritative for judgments no machine can legitimately make.
 
 Guild Operations should automate procedure, enforcement, recording, resolution, and presentation where useful. It should not manufacture authority merely because software could make a decision.
@@ -111,7 +111,7 @@ Guild Operations is a World of Warcraft guild product, so a GO-recognized WoW Ac
 
 Cross-authority association exists only between Identities and is always anchored directly to a GO-recognized WoW Account Identity. Association lets an external ingress Identity resolve to the canonical WoW-backed Actor subject while preserving the external Identity as the action origin.
 
-Characters are controlled context beneath WoW Account Identity. Subject-guild Character rank is Blizzard-authoritative. Guild Member Character and Guildie are derived classifications rather than independently authored identity objects. Representation is a declarable Identity attribute and does not determine authority.
+Characters are controlled context beneath WoW Account Identity. Blizzard owns its observed in-game ranks; Guild Operations selects effective subject-guild membership and rank from its declared roster (Manual, default) or Blizzard observations (Blizzard Sync, opt-in). Guild Member Character and Guildie remain derived classifications, not independently authored identity objects. Representation is a declarable Identity attribute and does not determine authority.
 
 The dependency direction is:
 
