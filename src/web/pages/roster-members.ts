@@ -1,3 +1,4 @@
+import { identityHasGuildCapability, GUILD_REFRESH_CAPABILITY } from "../../core/authority/guild-permissions.js";
 import { pendingRosterApplications } from "../../core/guild/roster-applications.js";
 import { guildRankDefinitions } from "../../core/guild/guild-ranks.js";
 import { manualRosterCharacterCandidates } from "../../core/guild/manual-roster-character-candidates.js";
@@ -47,7 +48,7 @@ export async function registerRosterMembersPage(app: FastifyInstance, assets: As
       ? await Promise.all([guildRankDefinitions(comparison.guildId), manualRosterCharacterCandidates(identity.identityId), pendingRosterApplications(identity.identityId)])
       : [[], null, null];
     const rankOptions = ranks.map((rank) => `<option value="${rank.rankIndex}">${escapeHtml(rank.displayName)}</option>`).join("");
-    const viewer = await viewerForRequest(token);
+    const [viewer, canRefresh] = await Promise.all([viewerForRequest(token), identityHasGuildCapability(identity.identityId, GUILD_REFRESH_CAPABILITY)]);
     const pending = comparison.mode === "manual" && !comparison.manualInitialized && preview !== null;
     const rows = (preview?.members ?? []).map((member) =>
       `<tr><td><label><input type="checkbox" name="member" value="${escapeHtml(member.characterRecordId)}" checked>
@@ -133,7 +134,17 @@ export async function registerRosterMembersPage(app: FastifyInstance, assets: As
       <button type="button" class="button-secondary" data-blizzard-sync-commit disabled>Switch to Blizzard Sync</button>
       <p role="status" aria-live="polite" data-blizzard-sync-status></p>
     </section>` : "";
-    const body = pending ? review : (membersView.initialized ? `${membersTable}${applicantReview}${reconciliation}${syncTransition}` : `<section class="settings-panel"><h2>Members</h2><p>${comparison.manualInitialized
+    const observationControls = `<section class="settings-panel" data-roster-observation>
+      <h2>Blizzard roster observation</h2>
+      <p>Refresh retrieves Blizzard's latest available snapshot. Blizzard may return stale or incomplete membership even after a successful refresh.</p>
+      <p>Last acquired: ${comparison.observationAcquiredAt ? escapeHtml(new Date(comparison.observationAcquiredAt).toLocaleString("en-US", { timeZone: "UTC", timeZoneName: "short" })) : "No snapshot available"}.</p>
+      <p>Blizzard source last modified: ${comparison.sourceLastModifiedAt ? escapeHtml(new Date(comparison.sourceLastModifiedAt).toLocaleString("en-US", { timeZone: "UTC", timeZoneName: "short" })) : "Not provided"}.</p>
+      <p>${comparison.mode === "manual" ? "Manual membership and ranks remain authoritative after refreshing the Blizzard observation." : "Blizzard Sync uses the observed roster for effective membership and ranks; a refresh may change access."}</p>
+      <button type="button" class="button-secondary" data-roster-refresh${canRefresh ? "" : " disabled"}>Refresh Blizzard snapshot</button>
+      ${canRefresh ? "" : "<p>You do not have permission to refresh the guild snapshot.</p>"}
+      <p role="status" aria-live="polite" data-roster-refresh-status></p>
+    </section>`;
+    const body = pending ? review : (membersView.initialized ? `${observationControls}${membersTable}${applicantReview}${reconciliation}${syncTransition}` : `<section class="settings-panel"><h2>Members</h2><p>${comparison.manualInitialized
       ? "The Manual roster has been initialized. Member management will be available in a subsequent release step."
       : "Roster initialization is not available in the current management mode."}</p></section>`);
     return reply.header("Cache-Control", "no-store").type("text/html; charset=utf-8").send(renderPage(assets, {
