@@ -184,7 +184,7 @@ function renderActionBar(viewer: WebViewer, pathname: string): string {
   const articlesActive = pathname === "/articles" || pathname.startsWith("/articles/") ? ' aria-current="page"' : "";
   return `<nav class="action-bar" aria-label="Primary navigation"><div class="action-bar-inner">
     <details class="mobile-nav menu-surface"><summary class="icon-control" aria-label="Open navigation"><span></span><span></span><span></span></summary><div class="menu-panel menu-panel-left mobile-nav-panel"><a href="/"${homeActive}>Home</a><a href="/calendar"${calendarActive}>Calendar</a><a href="/activities"${activitiesActive}>Activities</a><a href="/articles"${articlesActive}>Articles</a></div></details>
-    <div class="desktop-nav"><a href="/"${homeActive}>Home</a><a href="/calendar"${calendarActive}>Calendar</a><a href="/activities"${activitiesActive}>Activities</a><a href="/articles"${articlesActive}>Articles</a><a href="/roster/members"${rosterActive}>Roster</a></div><div class="action-bar-spacer"></div>${renderMeControl(viewer, pathname)}
+    <div class="desktop-nav"><a href="/"${homeActive}>Home</a><a href="/calendar"${calendarActive}>Calendar</a><a href="/activities"${activitiesActive}>Activities</a><a href="/articles"${articlesActive}>Articles</a></div><div class="action-bar-spacer"></div>${renderMeControl(viewer, pathname)}
   </div></nav>`;
 }
 
