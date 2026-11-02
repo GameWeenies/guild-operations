@@ -2,7 +2,6 @@ import type { FastifyInstance } from "fastify";
 import { authenticatedIdentity, SESSION_COOKIE_NAME } from "../../auth.js";
 import { effectiveGuildAuthority } from "../../core/authority/guild-permissions.js";
 import { setGuildRankDisplayName } from "../../core/guild/guild-ranks.js";
-import { guildRefreshStatus } from "../../core/guild/guild-refresh-status.js";
 import {
   canAdministerGuildPermissions,
   guildCapabilityPoliciesForActor,
@@ -11,13 +10,10 @@ import {
 } from "../../core/authority/guild-capability-policy.js";
 import {
   GUILD_REFRESH_MINIMUM_INTERVAL_SECONDS,
-  guildRefreshSchedule,
   type GuildRefreshSchedule,
 } from "../../core/guild/guild-refresh-schedule.js";
 import {
   DISCORD_CONFIGURE_CAPABILITY,
-  GUILD_REFRESH_CAPABILITY,
-  GUILD_REFRESH_SCHEDULE_CONFIGURE_CAPABILITY,
   GUILD_PRESENTATION_CONFIGURE_CAPABILITY,
   MODULES_CONFIGURE_CAPABILITY,
   THEME_CONFIGURE_CAPABILITY,
