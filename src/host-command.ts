@@ -5,8 +5,79 @@ import { pool, withTransaction } from "./db.js";
 import { installationGuildBinding } from "./core/installation/guild-binding.js";
 import { resolveConfiguredInstallationGuild } from "./core/installation/guild-binding.js";
 
+async function rosterRecoveryHostCommand(args: string[]): Promise<void> {
+  if (!stdin.isTTY || !stdout.isTTY) throw new Error("Roster recovery requires an interactive host terminal");
+  if (args.length !== 1 || !["request", "cancel"].includes(args[0])) {
+    throw new Error("Usage: node dist/host-command.js roster-recover request | cancel");
+  }
+  const binding = await installationGuildBinding();
+  if (!binding?.authorizedAt || binding.authorizationKind !== "guild_master" ||
+      !binding.verifiedGmCharacterRecordId || !binding.authorizedByIdentityId) {
+    throw new Error("Roster recovery requires an installation authorized by a verified Guild Master");
+  }
+  const pending = await pool.query<{ request_id: string; guild_id: string }>(
+    "SELECT request_id, guild_id FROM roster_recovery_requests WHERE completed_at IS NULL AND cancelled_at IS NULL",
+  );
+  if (args[0] === "cancel") {
+    if (!pending.rows[0]) { stdout.write("No pending roster recovery request.\\n"); return; }
+    const rl = createInterface({ input: stdin, output: stdout });
+    let answer: string;
+    try { answer = await rl.question('Type "cancel recovery" to cancel: '); }
+    finally { rl.close(); }
+    if (answer !== "cancel recovery") { stdout.write("No changes made.\\n"); return; }
+    await withTransaction(async (client) => {
+      await client.query("SELECT pg_advisory_xact_lock(256, 2)");
+      await client.query(
+        "UPDATE roster_recovery_requests SET cancelled_at = now() WHERE request_id = $1 AND completed_at IS NULL AND cancelled_at IS NULL",
+        [pending.rows[0].request_id],
+      );
+    });
+    stdout.write("Recovery request cancellation processed.\\n");
+    return;
+  }
+  if (pending.rowCount) throw new Error("A roster recovery request is already pending");
+  const rl = createInterface({ input: stdin, output: stdout });
+  let answer: string;
+  try {
+    stdout.write("Recovery only requests GM approval. It does not change roster mode or permissions.\\n");
+    answer = await rl.question('Type "request recovery" to continue: ');
+  } finally { rl.close(); }
+  if (answer !== "request recovery") { stdout.write("No changes made.\\n"); return; }
+  const requestId = randomUUID();
+  await withTransaction(async (client) => {
+    await client.query("SELECT pg_advisory_xact_lock(256, 2)");
+    const state = await client.query(
+      "SELECT mode, manual_initialized_at FROM guild_roster_management WHERE guild_id = $1 FOR UPDATE",
+      [binding.guildId],
+    );
+    if (state.rows[0]?.mode !== "blizzard_sync" || !state.rows[0].manual_initialized_at) {
+      throw new Error("Recovery requires Blizzard Sync and an initialized Manual roster");
+    }
+    const admin = await client.query(
+      `SELECT 1 FROM guild_roster observed
+         JOIN controlled_character_roster control
+           ON control.character_record_id = observed.character_record_id
+          AND control.currently_controlled = true
+        WHERE observed.guild_id = $1 AND observed.currently_present = true
+          AND observed.rank_index = 0 LIMIT 1`,
+      [binding.guildId],
+    );
+    if (admin.rowCount) throw new Error("An effective Blizzard Sync administrator remains; recovery is unavailable");
+    const existing = await client.query(
+      "SELECT 1 FROM roster_recovery_requests WHERE completed_at IS NULL AND cancelled_at IS NULL FOR UPDATE",
+    );
+    if (existing.rowCount) throw new Error("A roster recovery request is already pending");
+    await client.query(
+      "INSERT INTO roster_recovery_requests (request_id, guild_id) VALUES ($1, $2)",
+      [requestId, binding.guildId],
+    );
+  });
+  stdout.write(`Recovery request ${requestId} awaits verified GM authorization. No roster changes made.\\n`);
+}
+
 async function main(): Promise<void> {
   const [command, ...args] = process.argv.slice(2);
+  if (command === "roster-recover") { await rosterRecoveryHostCommand(args); return; }
   if (command !== "rebind" || !(args.length === 0 || (args.length === 1 && ["cancel", "confirm"].includes(args[0])))) {
     throw new Error("Usage: node dist/host-command.js rebind | rebind confirm | rebind cancel");
   }
