@@ -1,7 +1,7 @@
 import { pool, withTransaction } from "../../db.js";
 import { requireOperationalInstallationGuildBinding } from "../installation/guild-binding.js";
 import { canManageGuildRoster } from "../authority/guild-capability-policy.js";
-import { validCharacterRecordId, validRosterRank } from "./manual-roster-operations.js";
+import { validCharacterRecordId } from "./manual-roster-operations.js";
 
 export class RosterApplicationError extends Error {
   constructor(readonly code: string) { super(code); }
@@ -52,15 +52,12 @@ export async function pendingRosterApplications(actorIdentityId: string) {
   return { applications: result.rows };
 }
 
-export async function reviewRosterApplication(actorIdentityId: string, applicationId: string, decision: "approve" | "reject", rankIndex?: number) {
+export async function reviewRosterApplication(actorIdentityId: string, applicationId: string) {
   const { guildId } = await requireOperationalInstallationGuildBinding();
   if (!await canManageGuildRoster(actorIdentityId, guildId)) throw new RosterApplicationError("roster_management_forbidden");
-  if (!validCharacterRecordId(applicationId) || (decision === "approve" && !validRosterRank(rankIndex))) {
+  if (!validCharacterRecordId(applicationId)) {
     throw new RosterApplicationError("invalid_application_review");
   }
-  // Approval is intentionally deferred until its membership transition and audit
-  // can be committed atomically. Rejecting does not grant or change membership.
-  if (decision !== "reject") throw new RosterApplicationError("approval_not_implemented");
   return withTransaction(async (client) => {
     await client.query("SELECT guild_id FROM guilds WHERE guild_id = $1 FOR UPDATE", [guildId]);
     const result = await client.query(
