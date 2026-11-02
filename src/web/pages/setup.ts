@@ -1,3 +1,4 @@
+import { pendingRosterRecovery } from "../../core/guild/roster-recovery.js";
 import type { FastifyInstance } from "fastify";
 import { SESSION_COOKIE_NAME, authenticatedIdentity } from "../../auth.js";
 import { pool } from "../../db.js";
@@ -40,7 +41,18 @@ export async function registerSetupPage(app: FastifyInstance, assets: AssetRegis
           assets, "<p>Could not verify the pending destination guild with Blizzard. The existing guild binding remains active. Contact the host administrator to review the target configuration.</p>",
         ));
       }
-      if (!preview) return reply.redirect("/");
+      if (!preview) {
+        const recovery = await pendingRosterRecovery();
+        if (!recovery || recovery.guild_id !== binding.guildId) return reply.redirect("/");
+        const identity = await authenticatedIdentity(request.cookies[SESSION_COOKIE_NAME]);
+        const details = '<p>Host-requested roster recovery</p><p>Blizzard Sync currently has no effective administrator. The originally verified Guild Master must authorize restoring the existing Manual roster. Blizzard observations and rank assignments will not be modified.</p>';
+        if (!identity) return reply.type("text/html; charset=utf-8").send(renderSetupDocument(
+          assets, `${details}<p><a class="button-primary setup-action" href="/auth/blizzard/start?return_to=%2Fsetup">Sign in with Blizzard</a></p>`,
+        ));
+        return reply.type("text/html; charset=utf-8").send(renderSetupDocument(
+          assets, `${details}<form method="post" data-roster-recovery-authorize><button class="button-primary setup-action" type="submit">Authorize Manual roster recovery</button></form><p class="setup-status" data-setup-status aria-live="polite"></p>`,
+        ));
+      }
       const previous = preview.previous;
       const destination = preview.destination;
       const details = `<p>Host-requested guild rebinding</p>
