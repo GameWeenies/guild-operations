@@ -49,3 +49,8 @@ document.querySelector("form[data-rebind-authorize]")?.addEventListener("submit"
   event.preventDefault();
   void submitSetup(event.currentTarget, "/installation/rebind/authorize");
 });
+
+document.querySelector("form[data-roster-recovery-authorize]")?.addEventListener("submit", (event) => {
+  event.preventDefault();
+  void submitSetup(event.currentTarget, "/installation/roster-recovery/authorize");
+});
