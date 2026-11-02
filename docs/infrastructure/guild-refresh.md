@@ -1,12 +1,12 @@
 # Guild Refresh
 
-Guild refresh is the shared reconciliation procedure for Blizzard-owned guild roster state. The doctrine describing how roster truth contributes to Guildie authority lives in [`../doctrine/member-objects.md`](../doctrine/member-objects.md).
+Guild refresh is the shared observation procedure for Blizzard-reported guild roster state. It does not overwrite Guild Operations-declared membership or rank. The doctrine describing how roster truth contributes to Guildie authority lives in [`../doctrine/member-objects.md`](../doctrine/member-objects.md).
 
 ## What it owns
 
 Guild refresh answers:
 
-> Which Characters are currently members of the guild represented by this installation, and what Blizzard-owned numeric guild rank does each currently hold?
+> Which Characters and numeric ranks does Blizzard's latest acquired guild roster report for this installation? These observations may be stale and are not necessarily the effective operational roster.
 
 It does not establish Character control and does not make Character presentation authoritative for membership.
 
@@ -42,7 +42,7 @@ Schedule behavior:
 
 Claiming a due occurrence uses an atomic database update so multiple application processes do not casually claim the same occurrence. Scheduler-triggered refreshes do not overlap within one process.
 
-Manual execution and schedule configuration both require `guild.refresh`. The current policy grants it to Blizzard guild rank indexes 0, 1, and 2 through the shared capability machinery.
+Manual execution and schedule configuration use the `guild.refresh` capability, resolved from effective guild rank. Default capability policy includes rank indexes 1 and 2; effective rank 0 has inherent administrative authority.
 
 ## Administrative surface
 
@@ -68,7 +68,7 @@ After guild profile and roster persistence, current roster Characters are select
 
 An unchanged current Character with complete profile and media data causes no Character API work.
 
-Characters absent from the latest roster are marked `currently_present = false`; historical observations are preserved.
+Characters absent from the latest Blizzard roster are marked `currently_present = false` in observed state; historical observations are preserved. In Manual mode, this changes discrepancies only, not effective membership, rank, or Guildie transition emissions. In Blizzard Sync mode, observed changes affect effective authority and may produce Guildie transitions.
 
 Follow-up presentation acquisition is documented in [`character-presentation-acquisition.md`](character-presentation-acquisition.md).
 
