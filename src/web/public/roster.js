@@ -209,3 +209,37 @@
     reject.addEventListener("click", () => perform("reject"));
   }
 })();
+
+(() => {
+  const root = document.querySelector("[data-roster-blizzard-sync]");
+  if (!root) return;
+  const acknowledge = root.querySelector("[data-blizzard-sync-acknowledge]");
+  const commit = root.querySelector("[data-blizzard-sync-commit]");
+  const status = root.querySelector("[data-blizzard-sync-status]");
+  acknowledge.addEventListener("change", () => { commit.disabled = !acknowledge.checked; });
+  commit.addEventListener("click", async () => {
+    if (!acknowledge.checked || commit.disabled) return;
+    if (!window.confirm("Switch to Blizzard Sync? The last observed Blizzard roster will immediately determine effective guild membership and rank authority. Manual declarations will be preserved.")) return;
+    commit.disabled = true;
+    acknowledge.disabled = true;
+    status.textContent = "Switching roster authority…";
+    try {
+      const response = await fetch("/guild/roster/mode/blizzard-sync", {
+        method: "POST", credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ acknowledge_stale_roster_risk: true }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || "Roster mode transition failed");
+      window.location.reload();
+    } catch (error) {
+      status.textContent = error.message === "blizzard_snapshot_missing"
+        ? "No Blizzard observation is available. Refresh the guild snapshot before switching."
+        : error.message === "manual_roster_not_active"
+          ? "Roster mode has changed. Reload the page."
+          : error.message;
+      acknowledge.disabled = false;
+      commit.disabled = !acknowledge.checked;
+    }
+  });
+})();
