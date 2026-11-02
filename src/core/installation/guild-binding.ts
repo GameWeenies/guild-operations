@@ -112,6 +112,10 @@ export async function establishPendingInstallationGuildBinding(identityId: strin
   await withTransaction(async (client) => {
     const guildId = await persistGuild(client, authority.region, authority.profile, authority.referenceHref);
     await persistGuildRoster(client, guildId, authority.region, authority.roster);
+    await client.query(
+      "INSERT INTO guild_roster_observation_state (guild_id, acquired_at, source_last_modified_at) VALUES ($1, now(), NULL) ON CONFLICT (guild_id) DO UPDATE SET acquired_at = EXCLUDED.acquired_at, source_last_modified_at = NULL, updated_at = now()",
+      [guildId],
+    );
     await ensureGuildRosterInitialization(client, guildId);
     await client.query(
       `INSERT INTO installation_guild_binding (singleton, guild_id, bound_by_identity_id)
