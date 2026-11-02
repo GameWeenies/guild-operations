@@ -133,7 +133,7 @@ export async function registerRosterMembersPage(app: FastifyInstance, assets: As
       viewer,
       stylesheets: ["admin.css", "roster.css"],
       scripts: ["roster.js"],
-      header: '<div class="admin-page-header"><h1>Roster</h1><p class="lede">Members</p></div>',
+      header: '<div class="admin-page-header"><h1>Roster</h1><p class="lede">Members</p></div><nav aria-label="Roster sections"><a href="/roster/members">Members</a> · <a href="/roster/ranks">Ranks</a></nav>',
       body,
     }));
   });
