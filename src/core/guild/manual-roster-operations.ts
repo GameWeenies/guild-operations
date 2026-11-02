@@ -40,12 +40,14 @@ export async function changeManualRosterMember(input: {
   characterRecordId: string;
   action: "add" | "remove" | "rank";
   rankIndex?: number;
+  applicationId?: string;
 }): Promise<{ guildId: string; characterRecordId: string; action: string }> {
   const binding = await requireOperationalInstallationGuildBinding();
   if (!await canManageGuildRoster(input.actorIdentityId, binding.guildId)) {
     throw new ManualRosterOperationError("roster_management_forbidden");
   }
-  if (!validCharacterRecordId(input.characterRecordId) ||
+  if ((input.applicationId !== undefined && (!validCharacterRecordId(input.applicationId) || input.action !== "add")) ||
+    !validCharacterRecordId(input.characterRecordId) ||
     (input.action !== "remove" && !validRosterRank(input.rankIndex))) {
     throw new ManualRosterOperationError("invalid_roster_member_operation");
   }
@@ -57,6 +59,20 @@ export async function changeManualRosterMember(input: {
     );
     if (state.rows[0]?.mode !== "manual" || !state.rows[0].manual_initialized_at) {
       throw new ManualRosterOperationError("manual_roster_not_active");
+    }
+    if (input.applicationId) {
+      const application = await client.query<{ character_record_id: string; applicant_identity_id: string }>(
+        "SELECT character_record_id, applicant_identity_id FROM guild_roster_applications WHERE guild_id = $1 AND application_id = $2 AND status = 'pending' FOR UPDATE",
+        [binding.guildId, input.applicationId],
+      );
+      if (!application.rowCount || application.rows[0].character_record_id !== input.characterRecordId) {
+        throw new ManualRosterOperationError("application_not_pending");
+      }
+      const control = await client.query(
+        "SELECT 1 FROM controlled_character_roster WHERE identity_id = $1 AND character_record_id = $2 AND currently_controlled = true",
+        [application.rows[0].applicant_identity_id, input.characterRecordId],
+      );
+      if (!control.rowCount) throw new ManualRosterOperationError("application_character_not_controlled");
     }
     const before = await effectiveGuildies(client, binding.guildId);
     if (input.action !== "remove") {
@@ -89,6 +105,13 @@ export async function changeManualRosterMember(input: {
         [binding.guildId, input.characterRecordId, input.rankIndex],
       );
       if (!result.rowCount) throw new ManualRosterOperationError("member_not_declared");
+    }
+    if (input.applicationId) {
+      const approved = await client.query(
+        "UPDATE guild_roster_applications SET status = 'approved', reviewed_by_identity_id = $3, reviewed_at = now() WHERE guild_id = $1 AND application_id = $2 AND status = 'pending'",
+        [binding.guildId, input.applicationId, input.actorIdentityId],
+      );
+      if (!approved.rowCount) throw new ManualRosterOperationError("application_not_pending");
     }
     const after = await effectiveGuildies(client, binding.guildId);
     const transitions = guildieRosterTransitions(before, after);
