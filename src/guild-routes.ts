@@ -1,3 +1,4 @@
+import { submitRosterApplication, pendingRosterApplications, reviewRosterApplication, RosterApplicationError } from "./core/guild/roster-applications.js";
 import { changeManualRosterMember, ManualRosterOperationError, validCharacterRecordId, validRosterRank } from "./core/guild/manual-roster-operations.js";
 import type { FastifyInstance } from "fastify";
 import { manualRosterInitializationPreview, commitManualRosterInitialization, RosterInitializationConflict } from "./core/guild/roster-initialization-operation.js";
@@ -86,6 +87,47 @@ export async function registerGuildRoutes(app: FastifyInstance): Promise<void> {
       }
     },
   );
+
+  app.post<{ Body: { character_record_id?: unknown } }>("/guild/roster/applications", async (request, reply) => {
+    const identity = await authenticatedIdentity(request.cookies[SESSION_COOKIE_NAME]);
+    if (!identity) return reply.code(401).send({ error: "not_authenticated" });
+    try {
+      return reply.code(201).send(await submitRosterApplication(identity.identityId, request.body?.character_record_id as string));
+    } catch (error) {
+      if (error instanceof RosterApplicationError) {
+        return reply.code(error.code === "invalid_character" ? 400 :
+          error.code === "character_not_controlled" ? 403 : 409).send({ error: error.code });
+      }
+      throw error;
+    }
+  });
+
+  app.get("/guild/roster/applications", async (request, reply) => {
+    const identity = await authenticatedIdentity(request.cookies[SESSION_COOKIE_NAME]);
+    if (!identity) return reply.code(401).send({ error: "not_authenticated" });
+    try {
+      return reply.send(await pendingRosterApplications(identity.identityId));
+    } catch (error) {
+      if (error instanceof RosterApplicationError && error.code === "roster_management_forbidden") {
+        return reply.code(403).send({ error: error.code });
+      }
+      throw error;
+    }
+  });
+
+  app.post<{ Params: { applicationId: string } }>("/guild/roster/applications/:applicationId/reject", async (request, reply) => {
+    const identity = await authenticatedIdentity(request.cookies[SESSION_COOKIE_NAME]);
+    if (!identity) return reply.code(401).send({ error: "not_authenticated" });
+    try {
+      return reply.send(await reviewRosterApplication(identity.identityId, request.params.applicationId));
+    } catch (error) {
+      if (error instanceof RosterApplicationError) {
+        return reply.code(error.code === "roster_management_forbidden" ? 403 :
+          error.code === "invalid_application_review" ? 400 : 409).send({ error: error.code });
+      }
+      throw error;
+    }
+  });
 
   app.post("/guild/refresh", async (request, reply) => {
     const identity = await authenticatedIdentity(request.cookies[SESSION_COOKIE_NAME]);
