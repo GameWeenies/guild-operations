@@ -102,7 +102,7 @@
       const result = await response.json();
       status.textContent = result.error === "roster_snapshot_changed"
         ? "The roster snapshot changed. Reload and review the differences again."
-        : result.error === "blizzard_sync_not_active"
+        : result.error === "last_roster_administrator_required" ? "The resulting Manual roster needs at least one controlled Rank 0 administrator. Keep or add one before switching." : result.error === "blizzard_sync_not_active"
           ? "Roster mode changed. Reload the page."
           : "Reconciliation failed. Review the current roster and retry.";
     } catch {
@@ -127,7 +127,7 @@
       }),
     });
     const result = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(result.error || "Roster operation failed");
+    if (!response.ok) throw new Error(result.error === "last_roster_administrator_required" ? "Assign another controlled character Rank 0 before removing or demoting the last administrator." : result.error || "Roster operation failed");
   };
   for (const row of root.querySelectorAll("[data-member-id]")) {
     const select = row.querySelector("[data-member-rank]");
