@@ -51,6 +51,9 @@ export async function registerGuildRoutes(app: FastifyInstance): Promise<void> {
         if (error instanceof Error && error.message === "roster_initialization_forbidden") {
           return reply.code(403).send({ error: "roster_initialization_forbidden" });
         }
+        if (error instanceof Error && error.message.startsWith("verified_gm_character_")) {
+          return reply.code(409).send({ error: error.message });
+        }
         if (error instanceof Error && /Manual roster is not awaiting initialization/.test(error.message)) {
           return reply.code(409).send({ error: "roster_already_initialized" });
         }
