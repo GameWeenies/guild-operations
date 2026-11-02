@@ -1,3 +1,4 @@
+import { rosterMembersView } from "../../core/guild/roster-members-view.js";
 import { rosterReconciliationPreview } from "../../core/guild/roster-reconciliation.js";
 import type { FastifyInstance } from "fastify";
 import { authenticatedIdentity, SESSION_COOKIE_NAME } from "../../auth.js";
@@ -37,6 +38,7 @@ export async function registerRosterMembersPage(app: FastifyInstance, assets: As
         throw error;
       }
     }
+    const membersView = await rosterMembersView(identity.identityId);
     const viewer = await viewerForRequest(token);
     const pending = comparison.mode === "manual" && !comparison.manualInitialized && preview !== null;
     const rows = (preview?.members ?? []).map((member) =>
@@ -81,7 +83,21 @@ export async function registerRosterMembersPage(app: FastifyInstance, assets: As
         <p role="status" aria-live="polite" data-reconciliation-status></p>
       </section>`;
     }
-    const body = pending ? review : reconciliation || `<section class="settings-panel"><h2>Members</h2><p>${comparison.manualInitialized
+    const memberRows = membersView.members.map((member) => {
+      const name = `${escapeHtml(member.name)}-${escapeHtml(member.realm || "Unknown realm")}`;
+      const discrepancy = member.discrepancy
+        ? ` <span title="Blizzard observed: ${member.observedRank === null ? "Not present" : `Rank ${member.observedRank}`}. Guild Operations declared: Rank ${member.rankIndex}.">⚠</span>`
+        : "";
+      return `<tr><td>${name} ${member.level === null ? "" : `(Level ${member.level})`}</td>
+        <td>${escapeHtml(member.rankDisplayName ?? `Rank ${member.rankIndex}`)}${discrepancy}</td>
+        ${membersView.mode === "manual" ? "<td>—</td>" : ""}</tr>`;
+    }).join("");
+    const membersTable = `<section class="settings-panel"><h2>Members</h2>
+      <p>${membersView.mode === "manual" ? "Guild Operations declared membership is authoritative." : "Blizzard-observed membership is authoritative. This roster is read-only."}</p>
+      <div class="roster-review-scroll"><table><thead><tr><th>Character-Realm (level)</th><th>Rank</th>${membersView.mode === "manual" ? "<th>Actions</th>" : ""}</tr></thead>
+      <tbody>${memberRows || `<tr><td colspan="${membersView.mode === "manual" ? 3 : 2}">No members in the effective roster.</td></tr>`}</tbody></table></div>
+    </section>`;
+    const body = pending ? review : reconciliation || (membersView.initialized ? membersTable : `<section class="settings-panel"><h2>Members</h2><p>${comparison.manualInitialized
       ? "The Manual roster has been initialized. Member management will be available in a subsequent release step."
       : "Roster initialization is not available in the current management mode."}</p></section>`;
     return reply.header("Cache-Control", "no-store").type("text/html; charset=utf-8").send(renderPage(assets, {
