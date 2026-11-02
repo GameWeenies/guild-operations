@@ -58,6 +58,7 @@ export type InstallationGuildBinding = {
   authorizedAt: Date | null;
   authorizedByIdentityId: string | null;
   authorizationKind: "guild_master" | "original_install_bypass" | null;
+  verifiedGmCharacterRecordId: string | null;
 };
 
 export async function installationGuildBinding(): Promise<InstallationGuildBinding | null> {
@@ -65,8 +66,9 @@ export async function installationGuildBinding(): Promise<InstallationGuildBindi
     guild_id: string; bound_at: Date; bound_by_identity_id: string | null;
     authorized_at: Date | null; authorized_by_identity_id: string | null;
     authorization_kind: InstallationGuildBinding["authorizationKind"];
+    verified_gm_character_record_id: string | null;
   }>(`SELECT guild_id, bound_at, bound_by_identity_id, authorized_at,
-             authorized_by_identity_id, authorization_kind
+             authorized_by_identity_id, authorization_kind, verified_gm_character_record_id
         FROM installation_guild_binding WHERE singleton = true`);
   const row = result.rows[0];
   return row ? {
@@ -76,6 +78,7 @@ export async function installationGuildBinding(): Promise<InstallationGuildBindi
     authorizedAt: row.authorized_at,
     authorizedByIdentityId: row.authorized_by_identity_id,
     authorizationKind: row.authorization_kind,
+    verifiedGmCharacterRecordId: row.verified_gm_character_record_id,
   } : null;
 }
 
@@ -135,19 +138,17 @@ export async function authorizeInstallationGuildBinding(
   if (!binding) throw new Error("Installation is not bound to a guild");
   if (binding.authorizedAt) return binding;
 
-  const rankResult = await pool.query<{ rank_index: number }>(
-    `SELECT MIN(gr.rank_index)::integer AS rank_index
+  const rankResult = await pool.query<{ rank_index: number; character_record_id: string }>(
+    `SELECT gr.rank_index, gr.character_record_id
        FROM controlled_character_roster ccr
-       JOIN guild_roster gr
-         ON gr.character_record_id = ccr.character_record_id
+       JOIN guild_roster gr ON gr.character_record_id = ccr.character_record_id
         AND gr.currently_present = true
-      WHERE ccr.identity_id = $1
-        AND ccr.currently_controlled = true
-        AND gr.guild_id = $2
-      HAVING count(*) > 0`,
+      WHERE ccr.identity_id = $1 AND ccr.currently_controlled = true AND gr.guild_id = $2
+      ORDER BY gr.rank_index, gr.character_record_id LIMIT 1`,
     [identityId, binding.guildId],
   );
   const rankIndex = rankResult.rows[0]?.rank_index;
+  const verifiedCharacterId = rankIndex === 0 ? rankResult.rows[0].character_record_id : null;
   const authorizationKind = rankIndex === 0
     ? "guild_master"
     : rankIndex !== undefined && hasDevelopmentGuildMasterAuthority(identityId)
@@ -161,10 +162,11 @@ export async function authorizeInstallationGuildBinding(
     `UPDATE installation_guild_binding
         SET authorized_at = now(),
             authorized_by_identity_id = $1,
-            authorization_kind = $2
+            authorization_kind = $2,
+            verified_gm_character_record_id = $3
       WHERE singleton = true
         AND authorized_at IS NULL`,
-    [identityId, authorizationKind],
+    [identityId, authorizationKind, verifiedCharacterId],
   );
 
   const authorized = await installationGuildBinding();
