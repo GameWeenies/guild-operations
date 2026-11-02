@@ -262,6 +262,10 @@ export async function refreshGuildAuthority(): Promise<GuildRefreshResult> {
     const guildId = await persistGuild(client, guild.region, authority.profile);
     const beforeGuildies = await guildieRosterState(client, guildId);
     const roster = await persistGuildRoster(client, guildId, guild.region, authority.roster);
+    await client.query(
+      "INSERT INTO guild_roster_observation_state (guild_id, acquired_at, source_last_modified_at) VALUES ($1, now(), NULL) ON CONFLICT (guild_id) DO UPDATE SET acquired_at = EXCLUDED.acquired_at, source_last_modified_at = NULL, updated_at = now()",
+      [guildId],
+    );
     const afterGuildies = await guildieRosterState(client, guildId);
     const guildieTransitions = guildieRosterTransitions(beforeGuildies, afterGuildies);
     const publications = [];
