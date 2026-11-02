@@ -78,7 +78,6 @@ export async function registerRosterMembersPage(app: FastifyInstance, assets: As
       }
       throw error;
     }
-    const preview = null;
     const membersView = await rosterMembersView(identity.identityId);
     const manualControls = comparison.mode === "manual" && comparison.manualInitialized;
     const [ranks, candidates, applications] = manualControls
@@ -86,23 +85,6 @@ export async function registerRosterMembersPage(app: FastifyInstance, assets: As
       : [[], null, null];
     const rankOptions = ranks.map((rank) => `<option value="${rank.rankIndex}">${escapeHtml(rank.displayName)}</option>`).join("");
     const [viewer, canRefresh] = await Promise.all([viewerForRequest(token), identityHasGuildCapability(identity.identityId, GUILD_REFRESH_CAPABILITY)]);
-    const pending = comparison.mode === "manual" && !comparison.manualInitialized && preview !== null;
-    const rows = (preview?.members ?? []).map((member) =>
-      `<tr><td><label><input type="checkbox" name="member" value="${escapeHtml(member.characterRecordId)}" checked>
-        <span>${escapeHtml(member.name)}-${escapeHtml(member.realm || "Unknown realm")}</span></label></td>
-        <td>${member.level ?? "—"}</td><td>Rank ${member.rankIndex}</td></tr>`,
-    ).join("");
-    const review = `<section class="settings-panel" data-roster-review data-snapshot-version="${escapeHtml(preview?.snapshotVersion ?? "")}">
-      <h2>Review initial membership</h2>
-      <p>Blizzard's roster may be incomplete or stale. Select only characters you want to include in Guild Operations. Their observed ranks will be imported; missing characters can be added after initialization.</p>
-      <p><strong>${preview?.members.length ?? 0}</strong> Blizzard-observed characters · <strong data-roster-selected>${preview?.members.length ?? 0}</strong> selected</p>
-      <div class="roster-review-actions"><button type="button" class="button-secondary" data-roster-select-all>Select all</button>
-      <button type="button" class="button-secondary" data-roster-clear>Clear selection</button></div>
-      <div class="roster-review-scroll"><table><thead><tr><th>Character-Realm</th><th>Level</th><th>Observed rank</th></tr></thead><tbody>${rows}</tbody></table></div>
-      <label class="roster-review-confirm"><input type="checkbox" data-roster-confirm> I have reviewed this selection and understand that Blizzard's snapshot may be stale.</label>
-      <button type="button" class="button-primary" data-roster-commit disabled>Initialize Manual roster</button>
-      <p role="status" aria-live="polite" data-roster-status></p>
-    </section>`;
     let reconciliation = "";
     if (comparison.mode === "blizzard_sync") {
       const differences = comparison.differences.map((difference) => {
@@ -181,9 +163,9 @@ export async function registerRosterMembersPage(app: FastifyInstance, assets: As
       ${canRefresh ? "" : "<p>You do not have permission to refresh the guild snapshot.</p>"}
       <p role="status" aria-live="polite" data-roster-refresh-status></p>
     </section>`;
-    const body = pending ? review : (membersView.initialized ? `${observationControls}${membersTable}${applicantReview}${reconciliation}${syncTransition}` : `<section class="settings-panel"><h2>Members</h2><p>${comparison.manualInitialized
+    const body = membersView.initialized ? `${observationControls}${membersTable}${applicantReview}${reconciliation}${syncTransition}` : `<section class="settings-panel"><h2>Members</h2><p>${comparison.manualInitialized
       ? "The Manual roster has been initialized. Member management will be available in a subsequent release step."
-      : "Roster initialization is not available in the current management mode."}</p></section>`);
+      : "Roster initialization is not available in the current management mode."}</p></section>`;
     return reply.header("Cache-Control", "no-store").type("text/html; charset=utf-8").send(renderPage(assets, {
       pathname: "/roster/members",
       title: `Roster · ${viewer.guildPresentation.guildName} Guild Operations`,
