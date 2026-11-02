@@ -164,7 +164,6 @@ function renderActionBar(viewer: WebViewer, pathname: string): string {
     const destinations = [
       { label: "General", href: "/admin/general" },
       { label: "Appearance", href: "/admin/appearance" },
-      { label: "Ranks", href: "/admin/permissions" },
       ...(discordAdministrationAvailable ? [{ label: "Discord", href: "/admin/discord" }] : []),
       { label: "Plugins", href: "/admin/modules" },
     ];
@@ -179,6 +178,14 @@ function renderActionBar(viewer: WebViewer, pathname: string): string {
   }
 
   const rosterActive = pathname === "/roster" || pathname.startsWith("/roster/") ? ` aria-current="page"` : "";
+  if (rosterActive) {
+    const destinations = [{ label: "Members", href: "/roster/members" }, { label: "Ranks", href: "/roster/ranks" }];
+    const links = destinations.map(({ label, href }) => `<a href="${href}"${pathname === href ? ' aria-current="page"' : ""}>${label}</a>`).join("");
+    return `<nav class="action-bar" aria-label="Roster navigation"><div class="action-bar-inner">
+      <details class="mobile-nav menu-surface"><summary class="icon-control" aria-label="Open navigation"><span></span><span></span><span></span></summary><div class="menu-panel menu-panel-left mobile-nav-panel">${links}</div></details>
+      <div class="desktop-nav">${links}</div><div class="action-bar-spacer"></div>${renderMeControl(viewer, pathname)}
+    </div></nav>`;
+  }
   const homeActive = pathname === "/" ? ' aria-current="page"' : "";
   const calendarActive = pathname === "/calendar" ? ' aria-current="page"' : "";
   const activitiesActive = pathname === "/activities" || pathname.startsWith("/activities/") ? ' aria-current="page"' : "";
