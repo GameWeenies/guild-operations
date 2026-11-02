@@ -138,6 +138,10 @@ export async function authorizeInstallationRebind(identityId: string, sessionTok
       [destinationId],
     );
     await persistGuildRoster(client, destinationId, target.region, authority.roster);
+    await client.query(
+      "INSERT INTO guild_roster_observation_state (guild_id, acquired_at, source_last_modified_at) VALUES ($1, now(), NULL) ON CONFLICT (guild_id) DO UPDATE SET acquired_at = EXCLUDED.acquired_at, source_last_modified_at = NULL, updated_at = now()",
+      [destinationId],
+    );
     // Transport projections are replaceable pointers to the previous Discord server.
     // Remove them before allowing the destination guild to reconnect.
     await client.query("DELETE FROM discord_raffle_claim_projections");
