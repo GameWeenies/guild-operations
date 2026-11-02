@@ -1,3 +1,4 @@
+import { hasDeclaredRosterAdministrator } from "./manual-admin-continuity.js";
 import type { PoolClient } from "pg";
 import { publishEmission, deliverEmission } from "../../emissions/registry.js";
 import { effectiveGuildRosterSql } from "./effective-roster.js";
@@ -112,6 +113,9 @@ export async function changeManualRosterMember(input: {
         [binding.guildId, input.applicationId, input.actorIdentityId],
       );
       if (!approved.rowCount) throw new ManualRosterOperationError("application_not_pending");
+    }
+    if (!await hasDeclaredRosterAdministrator(client, binding.guildId)) {
+      throw new ManualRosterOperationError("last_roster_administrator_required");
     }
     const after = await effectiveGuildies(client, binding.guildId);
     const transitions = guildieRosterTransitions(before, after);
