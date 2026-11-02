@@ -9,13 +9,17 @@ Guild Operations maintains two independent membership/rank datasets for the boun
 
 ## Manual mode
 
-Roster → Members permits authorized administrators to review/import initial observations, add or remove members, assign ranks, and review applicants. Blizzard refresh updates observations and discrepancies without changing declarations or emitting effective Guildie changes. Differences between declared and observed membership/rank are review information, not automatic changes.
+Guild Settings → Roster → Members permits authorized administrators to review/import initial observations, add or remove members, assign ranks, and review applicants. Blizzard refresh updates observations and discrepancies without changing declarations or emitting effective Guildie changes. Differences between declared and observed membership/rank are review information, not automatic changes.
 
 ## Blizzard Sync mode
 
-Roster → Members presents the observed snapshot without per-member mutation actions, with freshness and stale-authority warnings. Successful Blizzard refreshes can change effective Guildie membership/rank and publish corresponding transitions.
+Guild Settings → Roster → Members presents the observed snapshot without per-member mutation actions, with freshness and stale-authority warnings. Successful Blizzard refreshes can change effective Guildie membership/rank and publish corresponding transitions.
 
 Switching Manual → Blizzard Sync requires risk acknowledgment and a controlled observed rank-zero administrator. Switching Blizzard Sync → Manual uses a snapshot-versioned discrepancy preview; selected observed differences are applied to declarations atomically with mode activation, while unselected declarations remain unchanged. An effective controlled administrator must remain.
+
+## Administrative workspace
+
+Guild Settings → Roster has three sections: **Members** (effective membership, member edits, and pending applications), **Ranks** (rank display, permissions, and Discord role associations), and **Synchronization** (Blizzard refresh schedule, manual refresh, observed snapshot provenance, and Manual/Blizzard Sync authority transitions and reconciliation). Members is the default destination. The initial Manual roster import remains on Members and is accessible to the verified GM before operational rank authority exists. No public roster view is provided.
 
 ## Installation and recovery
 
