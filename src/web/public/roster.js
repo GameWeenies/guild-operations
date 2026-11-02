@@ -111,3 +111,64 @@
   });
   update();
 })();
+
+(() => {
+  const root = document.querySelector("[data-roster-members]");
+  if (!root) return;
+  const send = async (characterRecordId, action, rankIndex) => {
+    const response = await fetch("/guild/roster/members", {
+      method: "POST", credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        character_record_id: characterRecordId, action,
+        ...(action === "remove" ? {} : { rank_index: Number(rankIndex) }),
+      }),
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.error || "Roster operation failed");
+  };
+  for (const row of root.querySelectorAll("[data-member-id]")) {
+    const select = row.querySelector("[data-member-rank]");
+    const save = row.querySelector("[data-member-save]");
+    const remove = row.querySelector("[data-member-remove]");
+    const status = row.querySelector("[data-member-status]");
+    const original = select.value;
+    select.addEventListener("change", () => { save.disabled = select.value === original; });
+    const perform = async (action) => {
+      if (action === "remove" && !window.confirm("Remove this character from the Guild Operations roster?")) return;
+      save.disabled = true;
+      remove.disabled = true;
+      select.disabled = true;
+      status.textContent = action === "remove" ? "Removing…" : "Saving…";
+      try {
+        await send(row.dataset.memberId, action, select.value);
+        window.location.reload();
+      } catch (error) {
+        status.textContent = error.message;
+        remove.disabled = false;
+        select.disabled = false;
+        save.disabled = select.value === original;
+      }
+    };
+    save.addEventListener("click", () => perform("rank"));
+    remove.addEventListener("click", () => perform("remove"));
+  }
+  const add = root.querySelector("[data-member-add]");
+  if (add) {
+    const character = root.querySelector("[data-member-add-character]");
+    const rank = root.querySelector("[data-member-add-rank]");
+    const status = root.querySelector("[data-member-add-status]");
+    add.addEventListener("click", async () => {
+      if (!character.value) return;
+      add.disabled = true;
+      status.textContent = "Adding…";
+      try {
+        await send(character.value, "add", rank.value);
+        window.location.reload();
+      } catch (error) {
+        status.textContent = error.message;
+        add.disabled = false;
+      }
+    });
+  }
+})();
