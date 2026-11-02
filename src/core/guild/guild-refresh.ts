@@ -1,3 +1,4 @@
+import { guildieRosterTransitions, type GuildieRosterState } from "./guildie-roster-transitions.js";
 import { effectiveGuildRosterSql } from "./effective-roster.js";
 import type { PoolClient } from "pg";
 import { acquireGuildAuthorityByReference, type BlizzardGuildProfile, type BlizzardGuildRoster } from "../../blizzard.js";
@@ -42,11 +43,6 @@ function coordinateKey(character: GuildCharacterCoordinate): string {
   return `${character.region}:${character.realmId}:${character.characterId}`;
 }
 
-type GuildieRosterState = {
-  identityId: string;
-  rankIndex: number;
-};
-
 async function guildieRosterState(client: PoolClient, guildId: string): Promise<Map<string, GuildieRosterState>> {
   const result = await client.query<{ identity_id: string; rank_index: number }>(
     `SELECT ccr.identity_id AS identity_id, MIN(gr.rank_index)::integer AS rank_index
@@ -63,33 +59,6 @@ async function guildieRosterState(client: PoolClient, guildId: string): Promise<
     identityId: row.identity_id,
     rankIndex: row.rank_index,
   }]));
-}
-
-type GuildieRosterTransition = {
-  code: "guildie.joined" | "guildie.left" | "guildie.rank.modified";
-  identityId: string;
-};
-
-function guildieRosterTransitions(
-  before: Map<string, GuildieRosterState>,
-  after: Map<string, GuildieRosterState>,
-): GuildieRosterTransition[] {
-  const transitions: GuildieRosterTransition[] = [];
-
-  for (const [identityId, afterState] of after) {
-    const beforeState = before.get(identityId);
-    if (!beforeState) {
-      transitions.push({ code: "guildie.joined", identityId });
-    } else if (beforeState.rankIndex !== afterState.rankIndex) {
-      transitions.push({ code: "guildie.rank.modified", identityId });
-    }
-  }
-
-  for (const identityId of before.keys()) {
-    if (!after.has(identityId)) transitions.push({ code: "guildie.left", identityId });
-  }
-
-  return transitions;
 }
 
 async function persistGuild(
