@@ -42,6 +42,8 @@
       const result = await response.json();
       if (response.status === 409 && result.error === "roster_snapshot_changed") {
         status.textContent = "The Blizzard roster changed. Reload this page and review the latest snapshot before retrying.";
+      } else if (result.error?.startsWith("verified_gm_character_")) {
+        status.textContent = "The verified Guild Master character is unavailable. Reverify guild ownership before initializing the roster.";
       } else {
         status.textContent = result.error === "roster_already_initialized"
           ? "The Manual roster has already been initialized. Reload the page."
