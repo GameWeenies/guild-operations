@@ -88,7 +88,39 @@ export async function commitManualRosterInitialization(
       name: row.name, realm: row.realm, level: row.level, rankIndex: row.rank_index,
     }));
     if (snapshotVersion(members) !== reviewedSnapshotVersion) throw new RosterInitializationConflict();
+    // Preserve the verified GM's operational authority even if the latest
+    // Blizzard observation omits the character that proved rank zero.
+    const verified = await client.query<{ verified_gm_character_record_id: string | null }>(
+      `SELECT verified_gm_character_record_id FROM installation_guild_binding
+        WHERE singleton = true AND guild_id = $1 AND authorization_kind = 'guild_master'
+          AND authorized_by_identity_id = $2 FOR UPDATE`,
+      [guildId, identityId],
+    );
+    let gmCharacterId = verified.rows[0]?.verified_gm_character_record_id ?? null;
+    // Existing installations verified before the character was recorded can
+    // recover it from their still-observed rank-zero character.
+    if (!gmCharacterId && verified.rowCount) {
+      const legacy = await client.query<{ character_record_id: string }>(
+        `SELECT gr.character_record_id FROM guild_roster gr
+          JOIN controlled_character_roster ccr ON ccr.character_record_id = gr.character_record_id
+         WHERE gr.guild_id = $1 AND gr.rank_index = 0 AND gr.currently_present = true
+           AND ccr.identity_id = $2 AND ccr.currently_controlled = true
+         ORDER BY gr.character_record_id LIMIT 1`, [guildId, identityId],
+      );
+      gmCharacterId = legacy.rows[0]?.character_record_id ?? null;
+    }
+    if (!gmCharacterId) throw new Error("verified_gm_character_unavailable");
+    const control = await client.query(
+      `SELECT 1 FROM controlled_character_roster WHERE character_record_id = $1
+        AND identity_id = $2 AND currently_controlled = true`, [gmCharacterId, identityId],
+    );
+    if (!control.rowCount) throw new Error("verified_gm_character_not_controlled");
     const imported = await initializeManualRosterFromReviewedSnapshot(client, guildId, selectedCharacterRecordIds);
+    await client.query(
+      `INSERT INTO guild_declared_roster (guild_id, character_record_id, rank_index)
+       VALUES ($1, $2, 0) ON CONFLICT (guild_id, character_record_id)
+       DO UPDATE SET rank_index = 0, updated_at = now()`, [guildId, gmCharacterId],
+    );
     return { guildId, imported };
   });
 }
