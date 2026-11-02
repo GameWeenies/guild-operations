@@ -1,3 +1,5 @@
+import { pool } from "../../db.js";
+import { requireOperationalInstallationGuildBinding } from "../../core/installation/guild-binding.js";
 import { identityHasGuildCapability, GUILD_REFRESH_CAPABILITY } from "../../core/authority/guild-permissions.js";
 import { pendingRosterApplications } from "../../core/guild/roster-applications.js";
 import { guildRankDefinitions } from "../../core/guild/guild-ranks.js";
@@ -22,6 +24,51 @@ export async function registerRosterMembersPage(app: FastifyInstance, assets: As
     const token = request.cookies[SESSION_COOKIE_NAME];
     const identity = await authenticatedIdentity(token);
     if (!identity) return reply.redirect("/auth/blizzard/start?return_to=%2Froster%2Fmembers");
+    // Bootstrap uses the verified installation GM, not rank-derived authority:
+    // an uninitialized Manual roster has no effective members or GO rank 0.
+    const binding = await requireOperationalInstallationGuildBinding();
+    const state = await pool.query<{ mode: "manual" | "blizzard_sync"; manual_initialized_at: Date | null }>(
+      "SELECT mode, manual_initialized_at FROM guild_roster_management WHERE guild_id = $1",
+      [binding.guildId],
+    );
+    if (!state.rowCount) throw new Error("roster_management_missing");
+    const bootstrap = state.rows[0].mode === "manual" && !state.rows[0].manual_initialized_at;
+    if (bootstrap) {
+      let preview;
+      try {
+        preview = await manualRosterInitializationPreview(identity.identityId);
+      } catch (error) {
+        if (error instanceof Error && error.message === "roster_initialization_forbidden") {
+          return reply.code(403).send({ error: "roster_initialization_forbidden" });
+        }
+        throw error;
+      }
+      const viewer = await viewerForRequest(token);
+      const rows = preview.members.map((member) =>
+        `<tr><td><label><input type="checkbox" name="member" value="${escapeHtml(member.characterRecordId)}" checked>
+          <span>${escapeHtml(member.name)}-${escapeHtml(member.realm || "Unknown realm")}</span></label></td>
+          <td>${member.level ?? "—"}</td><td>Rank ${member.rankIndex}</td></tr>`,
+      ).join("");
+      const review = `<section class="settings-panel" data-roster-review data-snapshot-version="${escapeHtml(preview.snapshotVersion)}">
+        <h2>Review initial membership</h2>
+        <p>Blizzard's roster may be incomplete or stale. Select only characters you want to include in Guild Operations. Their observed ranks will be imported; missing characters can be added after initialization.</p>
+        <p><strong>${preview.members.length}</strong> Blizzard-observed characters · <strong data-roster-selected>${preview.members.length}</strong> selected</p>
+        <div class="roster-review-actions"><button type="button" class="button-secondary" data-roster-select-all>Select all</button>
+        <button type="button" class="button-secondary" data-roster-clear>Clear selection</button></div>
+        <div class="roster-review-scroll"><table><thead><tr><th>Character-Realm</th><th>Level</th><th>Observed rank</th></tr></thead><tbody>${rows}</tbody></table></div>
+        <label class="roster-review-confirm"><input type="checkbox" data-roster-confirm> I have reviewed this selection and understand that Blizzard's snapshot may be stale.</label>
+        <button type="button" class="button-primary" data-roster-commit disabled>Initialize Manual roster</button>
+        <p role="status" aria-live="polite" data-roster-status></p>
+      </section>`;
+      return reply.header("Cache-Control", "no-store").type("text/html; charset=utf-8").send(renderPage(assets, {
+        pathname: "/roster/members",
+        title: `Roster · ${viewer.guildPresentation.guildName} Guild Operations`,
+        description: "Review initial guild membership.",
+        viewer, stylesheets: ["admin.css", "roster.css"], scripts: ["roster.js"],
+        header: '<div class="admin-page-header"><h1>Roster</h1><p class="lede">Members</p></div><nav aria-label="Roster sections"><a href="/roster/members">Members</a> · <a href="/roster/ranks">Ranks</a></nav>',
+        body: review,
+      }));
+    }
     let comparison;
     try {
       comparison = await rosterReconciliationPreview(identity.identityId);
@@ -31,17 +78,7 @@ export async function registerRosterMembersPage(app: FastifyInstance, assets: As
       }
       throw error;
     }
-    let preview = null;
-    if (comparison.mode === "manual" && !comparison.manualInitialized) {
-      try {
-        preview = await manualRosterInitializationPreview(identity.identityId);
-      } catch (error) {
-        if (error instanceof Error && error.message === "roster_initialization_forbidden") {
-          return reply.code(403).send({ error: "roster_initialization_forbidden" });
-        }
-        throw error;
-      }
-    }
+    const preview = null;
     const membersView = await rosterMembersView(identity.identityId);
     const manualControls = comparison.mode === "manual" && comparison.manualInitialized;
     const [ranks, candidates, applications] = manualControls
