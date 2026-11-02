@@ -1,6 +1,6 @@
 import { withTransaction } from "../../db.js";
 import { requireOperationalInstallationGuildBinding } from "../installation/guild-binding.js";
-import { canAdministerGuildPermissions } from "../authority/guild-capability-policy.js";
+import { canManageGuildRoster } from "../authority/guild-capability-policy.js";
 
 export class ManualRosterOperationError extends Error {
   constructor(readonly code: string) { super(code); }
@@ -23,7 +23,7 @@ export async function changeManualRosterMember(input: {
   rankIndex?: number;
 }): Promise<{ guildId: string; characterRecordId: string; action: string }> {
   const binding = await requireOperationalInstallationGuildBinding();
-  if (!await canAdministerGuildPermissions(input.actorIdentityId, binding.guildId)) {
+  if (!await canManageGuildRoster(input.actorIdentityId, binding.guildId)) {
     throw new ManualRosterOperationError("roster_management_forbidden");
   }
   if (!validCharacterRecordId(input.characterRecordId) ||
