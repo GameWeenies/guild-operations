@@ -235,7 +235,9 @@
       if (!response.ok) throw new Error(result.error || "Roster mode transition failed");
       window.location.reload();
     } catch (error) {
-      status.textContent = error.message === "blizzard_snapshot_missing"
+      status.textContent = error.message === "blizzard_sync_administrator_missing"
+        ? "Your controlled character must appear as Rank 0 in the Blizzard snapshot before enabling Blizzard Sync. Remain in Manual mode if the snapshot is stale."
+        : error.message === "blizzard_snapshot_missing"
         ? "No Blizzard observation is available. Refresh the guild snapshot before switching."
         : error.message === "manual_roster_not_active"
           ? "Roster mode has changed. Reload the page."
