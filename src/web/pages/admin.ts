@@ -59,12 +59,12 @@ async function renderActivityAdministration(canConfigureModules: boolean, public
   return `<section class="packaged-capability-group"><div class="module-lifecycle-list">${cards.join("\n")}</div></section>`;
 }
 
-function renderGuildRefreshSchedule(schedule: GuildRefreshSchedule): string {
+export function renderGuildRefreshSchedule(schedule: GuildRefreshSchedule): string {
   const nextAutomaticRefresh = schedule.nextDueAtUnix === null ? "Disabled" : `<time data-unix-time="${schedule.nextDueAtUnix}">${schedule.nextDueAtUnix}</time>`;
   return `<form class="guild-refresh-schedule" data-guild-refresh-schedule-form><div class="guild-refresh-schedule-heading"><div><h3>Automatic guild refresh</h3><p>Reconcile current guild membership and rank authority from Blizzard on a repeating cadence.</p></div><label class="switch guild-refresh-toggle"><input type="checkbox" data-guild-refresh-schedule-enabled${schedule.enabled ? " checked" : ""}><span class="switch-control" aria-hidden="true"></span><span data-switch-label>${schedule.enabled ? "On" : "Off"}</span></label></div><div class="guild-refresh-schedule-controls"><label><span>Every</span><input type="number" min="${GUILD_REFRESH_MINIMUM_INTERVAL_SECONDS}" step="1" value="${schedule.intervalSeconds}" inputmode="numeric" data-guild-refresh-schedule-interval><span>seconds</span></label><button type="submit" class="button-primary" data-guild-refresh-schedule-save>Save</button></div><div class="guild-refresh-schedule-next"><span>Next automatic refresh</span><strong data-guild-refresh-schedule-next>${nextAutomaticRefresh}</strong></div><p class="guild-refresh-schedule-feedback" data-guild-refresh-schedule-feedback role="status" aria-live="polite"></p></form>`;
 }
 
-function renderGuildRefreshOperation(status: Awaited<ReturnType<typeof guildRefreshStatus>>, canRefresh: boolean): string {
+export function renderGuildRefreshOperation(status: Awaited<ReturnType<typeof guildRefreshStatus>>, canRefresh: boolean): string {
   const memberCount = status ? status.currentMemberCount.toLocaleString("en-US") : "—";
   const lastReconciled = status ? `<time data-unix-time="${status.lastReconciledAtUnix}">${status.lastReconciledAtUnix}</time>` : "Not yet observed";
   return `<div class="guild-refresh-admin" data-guild-refresh-admin><div class="guild-refresh-admin-heading"><div><h3>Manual guild refresh</h3><p>Reconcile current guild membership and rank authority from Blizzard now.</p></div><button type="button" class="guild-refresh-button button-primary" data-guild-refresh-button${canRefresh ? "" : " disabled"}>Refresh now</button></div><div class="guild-refresh-status"><div class="guild-refresh-stat"><strong>${memberCount}</strong><span>current members</span></div><div class="guild-refresh-stat"><span>Last reconciled</span><strong>${lastReconciled}</strong></div></div><p class="guild-refresh-feedback" data-guild-refresh-feedback role="status" aria-live="polite"></p></div>`;
@@ -132,23 +132,15 @@ export async function registerAdminPage(app: FastifyInstance, assets: AssetRegis
     const [viewer, identity] = await Promise.all([viewerForRequest(sessionToken), authenticatedIdentity(sessionToken)]);
     if (!identity) return reply.code(401).send("Authentication is required.");
 
-    const [canConfigureGuildRefreshSchedule, canConfigureGuildPresentation, canRefresh, canConfigureDiscord] = await Promise.all([
-      identityHasGuildCapability(identity.identityId, GUILD_REFRESH_SCHEDULE_CONFIGURE_CAPABILITY),
+    const [canConfigureGuildPresentation, canConfigureDiscord] = await Promise.all([
       identityHasGuildCapability(identity.identityId, GUILD_PRESENTATION_CONFIGURE_CAPABILITY),
-      identityHasGuildCapability(identity.identityId, GUILD_REFRESH_CAPABILITY),
       identityHasGuildCapability(identity.identityId, DISCORD_CONFIGURE_CAPABILITY),
     ]);
-    const [refreshSchedule, presentation, refreshStatus] = await Promise.all([
-      guildRefreshSchedule(),
-      guildPresentation(),
-      guildRefreshStatus(),
-    ]);
+    const presentation = await guildPresentation();
 
-    const schedule = canConfigureGuildRefreshSchedule ? renderGuildRefreshSchedule(refreshSchedule) : renderGuildRefreshSchedule(refreshSchedule).replaceAll("<input ", "<input disabled ").replaceAll("<button type=\"submit\"", "<button disabled type=\"submit\"");
-    const guildSettings = administrationSection("guild-settings", "guild-settings-heading", "Guild synchronization", `<div class="settings-panel guild-synchronization-settings">${schedule}${renderGuildRefreshOperation(refreshStatus, canRefresh)}</div>`);
     const orientation = renderAdministrationOrientation(presentation, canConfigureGuildPresentation);
     const articleSettings = canConfigureDiscord ? administrationSection("article-publication", "article-publication-heading", "Article publication", `<div class="settings-panel">${await renderDiscordContextSetting("article", request.log)}</div>`) : "";
-    const content = `${orientation}<div class="admin-sections">${guildSettings}${articleSettings}</div>`;
+    const content = `${orientation}<div class="admin-sections">${articleSettings}</div>`;
 
     const html = renderPage(assets, { pathname: "/admin/general", title: `General Settings · ${viewer.guildPresentation.guildName} Guild Operations`, description: "Inspect and configure Guild Operations.", viewer, stylesheets: ["admin.css", "discord-admin.css"], scripts: ["admin.js", "operations.js"], header: renderGuildSettingsHeader("General", "Inspect and manage guild-wide configuration."), body: `${content}` });
     return reply.header("Cache-Control", "no-cache").type("text/html; charset=utf-8").send(html);
@@ -257,9 +249,10 @@ export async function registerAdminPage(app: FastifyInstance, assets: AssetRegis
     return reply.send({ homepage: await setGuildHomepage(homepage) });
   });
 
-  app.get("/admin/permissions", async (_request, reply) => reply.redirect("/roster/ranks"));
+  app.get("/admin/permissions", async (_request, reply) => reply.redirect("/admin/roster/ranks"));
+  app.get("/roster/ranks", async (_request, reply) => reply.redirect("/admin/roster/ranks"));
 
-  app.get("/roster/ranks", async (request, reply) => {
+  app.get("/admin/roster/ranks", async (request, reply) => {
     const sessionToken = request.cookies[SESSION_COOKIE_NAME];
     const [viewer, identity] = await Promise.all([viewerForRequest(sessionToken), authenticatedIdentity(sessionToken)]);
     const authorized = identity ? await canAdministerGuildPermissions(identity.identityId) : false;
@@ -269,7 +262,7 @@ export async function registerAdminPage(app: FastifyInstance, assets: AssetRegis
     const developmentAuthority = identity ? hasDevelopmentGuildMasterAuthority(identity.identityId) : false;
     const canRename = identity ? (developmentAuthority || (await effectiveGuildAuthority(identity.identityId))?.rankIndex === 0) : false;
     const content = authorized && policies ? `<section class="permission-administration" aria-labelledby="permission-heading"><div class="permission-intro"><h2 id="permission-heading">Guild ranks</h2><p>Start with a guild rank to review its display name, capabilities, and integration relationships. Lower rank numbers mean higher Guild Operations authority; Rank 0 is Guild Master.</p>${developmentAuthority ? `<p class="permission-operator-notice"><strong>Development authority override active.</strong> This access is independent of your current guild rank.</p>` : ""}</div>${renderPermissionPolicies(policies, canRename)}</section>` : `<section class="admin-unavailable" aria-labelledby="admin-unavailable-heading"><h2 id="admin-unavailable-heading">Permission administration is not available for this account.</h2></section>`;
-    const html = renderPage(assets, { pathname: "/roster/ranks", title: `Roster Ranks · ${viewer.guildPresentation.guildName} Guild Operations`, description: "Configure guild rank presentation and capability access.", viewer, stylesheets: ["admin.css", "admin-permissions.css", "discord-admin.css"], scripts: ["admin-permissions.js"], header: '<div class="admin-page-header"><h1>Roster</h1><p class="lede">Ranks</p></div><nav aria-label="Roster sections"><a href="/roster/members">Members</a> · <a href="/roster/ranks">Ranks</a></nav>', body: `${content}${discordRoleSettings}` });
+    const html = renderPage(assets, { pathname: "/admin/roster/ranks", title: `Roster Ranks · ${viewer.guildPresentation.guildName} Guild Operations`, description: "Configure guild rank presentation and capability access.", viewer, stylesheets: ["admin.css", "admin-permissions.css", "discord-admin.css"], scripts: ["admin-permissions.js"], header: `${renderGuildSettingsHeader("Roster", "Manage guild membership and ranks.")}<nav aria-label="Roster sections"><a href="/admin/roster/members">Members</a> · <a href="/admin/roster/ranks" aria-current="page">Ranks</a></nav>`, body: `${content}${discordRoleSettings}` });
     if (!authorized && !canConfigureDiscord) return reply.code(identity ? 403 : 401).header("Cache-Control", "no-cache").type("text/html; charset=utf-8").send(html);
     return reply.header("Cache-Control", "no-cache").type("text/html; charset=utf-8").send(html);
   });
