@@ -1,3 +1,4 @@
+import { manualRosterCharacterCandidates } from "./core/guild/manual-roster-character-candidates.js";
 import { submitRosterApplication, pendingRosterApplications, reviewRosterApplication, RosterApplicationError } from "./core/guild/roster-applications.js";
 import { changeManualRosterMember, ManualRosterOperationError, validCharacterRecordId, validRosterRank } from "./core/guild/manual-roster-operations.js";
 import type { FastifyInstance } from "fastify";
@@ -58,6 +59,19 @@ export async function registerGuildRoutes(app: FastifyInstance): Promise<void> {
       }
     },
   );
+
+  app.get("/guild/roster/character-candidates", async (request, reply) => {
+    const identity = await authenticatedIdentity(request.cookies[SESSION_COOKIE_NAME]);
+    if (!identity) return reply.code(401).send({ error: "not_authenticated" });
+    try {
+      return reply.send(await manualRosterCharacterCandidates(identity.identityId));
+    } catch (error) {
+      if (error instanceof ManualRosterOperationError && error.code === "roster_management_forbidden") {
+        return reply.code(403).send({ error: error.code });
+      }
+      throw error;
+    }
+  });
 
   app.post<{ Body: { character_record_id?: unknown; action?: unknown; rank_index?: unknown } }>(
     "/guild/roster/members", async (request, reply) => {
