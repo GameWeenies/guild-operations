@@ -5,3 +5,7 @@
 .roster-section-navigation { display: flex; flex-wrap: wrap; gap: .5rem; margin: 0 0 1.5rem; border-bottom: 1px solid var(--border-color, #353535); padding-bottom: .75rem; }
 .roster-section-navigation a { display: inline-flex; align-items: center; min-height: 2.5rem; padding: .5rem .9rem; border-radius: .5rem; text-decoration: none; }
 .roster-section-navigation a[aria-current="page"] { background: var(--surface-raised, rgba(255,255,255,.08)); font-weight: 700; }
+
+.roster-sort-controls { display: flex; align-items: center; flex-wrap: wrap; gap: .75rem; margin-top: 1rem; }
+.roster-sort-controls label { color: var(--theme-text-muted); }
+.roster-sort-controls select { min-width: 10rem; }
