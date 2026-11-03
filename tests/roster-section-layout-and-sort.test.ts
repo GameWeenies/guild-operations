@@ -15,13 +15,16 @@ test("shared renderer owns stacked panel spacing", () => {
   assert.match(page, /renderPageSectionStack\(synchronization, observationControls, reconciliation, syncTransition\)/);
 });
 
-test("roster supports numeric rank and ascending or descending character name sorting", () => {
+test("roster supports numeric rank and bidirectional character-name header sorting", () => {
   assert.match(page, /a\.rankIndex - b\.rankIndex/);
   assert.match(page, /data-rank-index="\$\{member\.rankIndex\}"/);
   assert.match(page, /data-character-name="\$\{name\}"/);
-  assert.match(page, /value="rank"/);
-  assert.match(page, /value="name-asc"/);
-  assert.match(page, /value="name-desc"/);
+  assert.match(page, /renderSortableColumnHeader\("Character", "name"\)/);
+  assert.match(page, /renderSortableColumnHeader\("Rank", "rank", true\)/);
+  assert.match(page, /renderTableFrame\(/);
+  assert.doesNotMatch(page, /data-roster-member-sort/);
   assert.match(script, /Number\(a\.dataset\.rankIndex\) - Number\(b\.dataset\.rankIndex\)/);
-  assert.match(script, /table\.append\(\.\.\.rows\)/);
+  assert.match(script, /body\.append\(\.\.\.rows\)/);
+  assert.match(script, /ascending = !ascending/);
+  assert.match(script, /aria-sort/);
 });
