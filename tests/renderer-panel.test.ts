@@ -26,3 +26,9 @@ test("Roster synchronization panel uses the renderer without losing its layout c
   assert.match(rosterSource, /className: "guild-synchronization-settings"/);
   assert.doesNotMatch(rosterSource, /class="settings-panel guild-synchronization-settings"/);
 });
+
+const discordStyles = readFileSync(new URL("../src/web/public/discord-admin.css", import.meta.url), "utf8");
+
+test("Discord integration save action is spaced independently of the enablement control", () => {
+  assert.match(discordStyles, /\.discord-setup-guide form\[action="\/admin\/discord"\] > \.button-primary\s*\{\s*margin-top:\s*1\.25rem;/);
+});
