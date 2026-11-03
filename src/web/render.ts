@@ -249,6 +249,18 @@ export function renderActionRow(...actions: string[]): string {
   return `<div class="form-action-row">${actions.filter(Boolean).join("")}</div>`;
 }
 
+/** Keep wide tables within their panel; compact tables may present rows as labeled records. */
+export function renderTableFrame(table: string, options: { compactRecords?: boolean; className?: string } = {}): string {
+  const classes = ["data-table-frame", ...(options.compactRecords ? ["data-table-records"] : []), ...(options.className ? options.className.split(/\\s+/).filter(Boolean) : [])];
+  return `<div class="${classes.join(" ")}">${table}</div>`;
+}
+
+/** Accessible, conventional column-header sorting; feature scripts own the actual row ordering. */
+export function renderSortableColumnHeader(label: string, key: string, active = false, direction: "ascending" | "descending" = "ascending"): string {
+  if (!/^[a-z][a-z0-9-]*$/.test(key)) throw new Error("Invalid table sort key");
+  return `<th scope="col" aria-sort="${active ? direction : "none"}"><button type="button" class="data-table-sort" data-table-sort="${key}" aria-label="Sort by ${htmlText(label)}"><span>${htmlText(label)}</span><span class="data-table-sort-indicator" aria-hidden="true">${active ? direction === "ascending" ? "↑" : "↓" : "↕"}</span></button></th>`;
+}
+
 /** Compose administrative sections with shared spacing. */
 export function renderAdminSectionStack(...sections: string[]): string {
   return `<div class="admin-sections">${sections.filter(Boolean).join("")}</div>`;
