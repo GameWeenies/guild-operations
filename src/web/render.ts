@@ -220,6 +220,11 @@ function renderFooter(viewer: WebViewer): string {
   </div></footer>`;
 }
 
+/** Compose sibling page panels with renderer-owned spacing, independent of panel styling. */
+export function renderPageSectionStack(...sections: string[]): string {
+  return `<div class="page-section-stack">${sections.filter(Boolean).join("")}</div>`;
+}
+
 export type PublicOccurrenceAction = { label: string; href: string; kind?: "primary" | "secondary" };
 export type PublicOccurrenceFrame = {
   title: string;
