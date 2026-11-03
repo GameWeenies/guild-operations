@@ -221,10 +221,22 @@ function renderFooter(viewer: WebViewer): string {
 }
 
 /** Render the shared panel boundary; features retain ownership of its contents. */
-export function renderPanel(content: string, options: { element?: "div" | "article" | "section"; className?: string } = {}): string {
+export function renderPanel(content: string, options: {
+  element?: "div" | "article" | "section" | "form";
+  className?: string;
+  attributes?: Record<string, string | boolean>;
+} = {}): string {
   const element = options.element ?? "div";
   const classes = ["settings-panel", ...(options.className ? options.className.split(/\s+/).filter(Boolean) : [])];
-  return `<${element} class="${classes.join(" ")}">${content}</${element}>`;
+  const attributes = Object.entries(options.attributes ?? {}).map(([name, value]) => {
+    if (!/^(?:id|role|aria-[a-z0-9-]+|data-[a-z0-9-]+|method|action|enctype|novalidate)$/.test(name)) {
+      throw new Error(`Unsupported panel attribute: ${name}`);
+    }
+    if (value === false) return "";
+    if (value === true) return ` ${name}`;
+    return ` ${name}="${htmlText(value)}"`;
+  }).join("");
+  return `<${element} class="${classes.join(" ")}"${attributes}>${content}</${element}>`;
 }
 
 /** Space ordinary form groups without taking ownership of their controls. */
