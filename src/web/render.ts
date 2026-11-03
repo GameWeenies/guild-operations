@@ -220,6 +220,11 @@ function renderFooter(viewer: WebViewer): string {
   </div></footer>`;
 }
 
+/** Compose administrative sections with shared spacing. */
+export function renderAdminSectionStack(...sections: string[]): string {
+  return `<div class="admin-sections">${sections.filter(Boolean).join("")}</div>`;
+}
+
 /** Compose sibling page panels with renderer-owned spacing, independent of panel styling. */
 export function renderPageSectionStack(...sections: string[]): string {
   return `<div class="page-section-stack">${sections.filter(Boolean).join("")}</div>`;
