@@ -30,22 +30,6 @@
 })();
 
 (() => {
-  const select = document.querySelector("[data-roster-member-sort]");
-  const table = document.querySelector("[data-roster-members] tbody");
-  if (!(select instanceof HTMLSelectElement) || !(table instanceof HTMLTableSectionElement)) return;
-  const compareName = (a, b) => a.dataset.characterName.localeCompare(b.dataset.characterName, undefined, { sensitivity: "base" });
-  select.addEventListener("change", () => {
-    const rows = Array.from(table.querySelectorAll("[data-roster-member-row]"));
-    rows.sort((a, b) => {
-      if (select.value === "name-asc") return compareName(a, b);
-      if (select.value === "name-desc") return compareName(b, a);
-      return Number(a.dataset.rankIndex) - Number(b.dataset.rankIndex) || compareName(a, b);
-    });
-    table.append(...rows);
-  });
-})();
-
-(() => {
   const root = document.querySelector("[data-roster-review]");
   if (!root) return;
   const boxes = () => Array.from(root.querySelectorAll('input[name="member"]'));
