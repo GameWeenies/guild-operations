@@ -15,7 +15,7 @@ import type { FastifyInstance } from "fastify";
 import { authenticatedIdentity, SESSION_COOKIE_NAME } from "../../auth.js";
 import { manualRosterInitializationPreview } from "../../core/guild/roster-initialization-operation.js";
 import type { AssetRegistry } from "../assets.js";
-import { renderPage, renderPageSectionStack } from "../render.js";
+import { renderPage, renderPageSectionStack, renderPanel } from "../render.js";
 import { viewerForRequest } from "../viewer.js";
 
 function escapeHtml(value: string): string {
@@ -172,7 +172,7 @@ export async function registerRosterMembersPage(app: FastifyInstance, assets: As
       ? await Promise.all([guildRefreshSchedule(), guildRefreshStatus(), identityHasGuildCapability(identity.identityId, GUILD_REFRESH_SCHEDULE_CONFIGURE_CAPABILITY)])
       : [null, null, false] as const;
     const schedule = refreshSchedule ? renderGuildRefreshSchedule(refreshSchedule) : "";
-    const synchronization = refreshStatus ? `<section class="admin-section"><h2>Guild synchronization</h2><div class="settings-panel guild-synchronization-settings">${canSchedule ? schedule : schedule.replaceAll("<input ", "<input disabled ").replaceAll("<button type=\"submit\"", "<button disabled type=\"submit\"")}${renderGuildRefreshOperation(refreshStatus, canRefresh)}</div></section>` : "";
+    const synchronization = refreshStatus ? `<section class="admin-section"><h2>Guild synchronization</h2>${renderPanel(`${canSchedule ? schedule : schedule.replaceAll("<input ", "<input disabled ").replaceAll("<button type=\"submit\"", "<button disabled type=\"submit\"")}${renderGuildRefreshOperation(refreshStatus, canRefresh)}`, { className: "guild-synchronization-settings" })}</section>` : "";
     const observationControls = `<section class="settings-panel" data-roster-observation>
       <h2>Blizzard roster observation</h2>
       <p>Refresh retrieves Blizzard's latest available snapshot. Blizzard may return stale or incomplete membership even after a successful refresh.</p>
