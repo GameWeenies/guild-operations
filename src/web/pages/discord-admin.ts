@@ -21,7 +21,7 @@ import { discordRankRoleMappings, replaceDiscordRankRoleMappings } from "../../i
 import { guildRankDefinitions } from "../../core/guild/guild-ranks.js";
 import { requireOperationalInstallationGuildBinding } from "../../core/installation/guild-binding.js";
 import type { AssetRegistry } from "../assets.js";
-import { htmlText, renderGuildSettingsHeader, renderPage } from "../render.js";
+import { htmlText, renderAdminSectionStack, renderGuildSettingsHeader, renderPage, renderPanel } from "../render.js";
 import { viewerForRequest } from "../viewer.js";
 
 const emojiSetupsInProgress = new Set<string>();
@@ -177,11 +177,10 @@ export async function registerDiscordAdminPage(app: FastifyInstance, assets: Ass
         previewSection = "<p>Unable to inspect Discord channels for the preview.</p>";
       }
     }
-    const body = `<div class="admin-sections">
+    const body = renderAdminSectionStack(`
       <section class="admin-section" aria-labelledby="discord-heading">
         <h2 id="discord-heading">Discord Integration</h2>
-        <div class="settings-panel">
-          <div><h3>Status</h3><p><strong>${htmlText(readiness)}</strong></p>${configuration?.applicationVerifiedAt ? `<p>Application: ${htmlText(configuration.applicationName ?? configuration.applicationId)}${configuration.botUsername ? ` · Bot: ${htmlText(configuration.botUsername)}` : ""}</p>` : ""}<p>Discord authorizes the application and server; Guild Operations manages their connection.</p></div>
+        ${renderPanel(`<div><h3>Status</h3><p><strong>${htmlText(readiness)}</strong></p>${configuration?.applicationVerifiedAt ? `<p>Application: ${htmlText(configuration.applicationName ?? configuration.applicationId)}${configuration.botUsername ? ` · Bot: ${htmlText(configuration.botUsername)}` : ""}</p>` : ""}<p>Discord authorizes the application and server; Guild Operations manages their connection.</p></div>
           ${!hostDiscordCredentials() ? '<p role="status">Discord integration is not configured for this installation. Contact your Guild Operations host administrator.</p>' : `<div class="discord-setup-guide">
             <h3>Discord application</h3>
             <p>Credentials are managed by the host administrator.</p>
@@ -204,9 +203,9 @@ export async function registerDiscordAdminPage(app: FastifyInstance, assets: Ass
             <p>Integration remains disabled until you review and enable it again.</p>
           </div>` : ""}
           ${installUrl && !configuration?.discordGuildId ? `<div class="discord-server-install"><h3>Install in your Discord server</h3><p>Choose the server for this deployment. Guild Operations verifies the bot relationship before binding the server.</p><a class="button-primary" href="${htmlText(installUrl)}" target="_blank" rel="noreferrer">Install in Discord Server</a></div>` : ""}
-        </div>
+        `)}
       </section>
-      <section class="admin-section"><h2>Discord emojis</h2><div class="settings-panel">\n        <p>Set up raid role and WoW specialization icons. Existing icons are reused; unrelated emojis are not changed.</p>
+      <section class="admin-section"><h2>Discord emojis</h2>${renderPanel(`\n        <p>Set up raid role and WoW specialization icons. Existing icons are reused; unrelated emojis are not changed.</p>
         ${configuration?.applicationVerifiedAt ? `<form data-emoji-setup method="post" action="/admin/discord/emoji/raid-roles">
           <button type="submit" class="button-secondary" data-emoji-submit>Set up Discord icons</button>
           <div data-emoji-results hidden aria-live="polite">
@@ -219,9 +218,8 @@ export async function registerDiscordAdminPage(app: FastifyInstance, assets: Ass
         <div class="discord-emoji-preview"><h3>Rendering preview</h3>
         ${((request.query as { preview?: string }).preview === "success") ? '<p role="status">Discord emoji preview sent to the selected channel.</p>' : ((request.query as { preview?: string }).preview === "failed") ? '<p role="alert">Unable to send the emoji preview. Check Operations → Logs.</p>' : ""}
         ${previewSection}</div>
-      </div></section>
-
-    </div>`;
+      `)}</section>
+    `);
 
     return reply.header("Cache-Control", "no-cache").type("text/html; charset=utf-8").send(renderPage(assets, {
       pathname: "/admin/discord",
