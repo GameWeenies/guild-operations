@@ -10,7 +10,7 @@ import {
   type OperationalRecordKind,
 } from "../../operational-inspection.js";
 import type { AssetRegistry } from "../assets.js";
-import { renderPage, renderAdminSectionStack, renderActionRow } from "../render.js";
+import { renderPage, renderAdminSectionStack } from "../render.js";
 import { viewerForRequest } from "../viewer.js";
 
 function escapeHtml(value: string): string {
