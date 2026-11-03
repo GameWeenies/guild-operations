@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { readFileSync } from "node:fs";
-import { renderPanel } from "../src/web/render.js";
+import { renderActionRow, renderFormLayout, renderPanel } from "../src/web/render.js";
 
 test("renderer owns shared panel boundary and preserves feature content", () => {
   assert.equal(renderPanel("<p>Content</p>"), '<div class="settings-panel"><p>Content</p></div>');
@@ -29,6 +29,13 @@ test("Roster synchronization panel uses the renderer without losing its layout c
 
 const discordStyles = readFileSync(new URL("../src/web/public/discord-admin.css", import.meta.url), "utf8");
 
-test("Discord integration save action is spaced independently of the enablement control", () => {
-  assert.match(discordStyles, /\.discord-setup-guide form\[action="\/admin\/discord"\] > \.button-primary\s*\{\s*margin-top:\s*1\.25rem;/);
+
+test("renderer composes form groups and action rows", () => {
+  assert.equal(renderFormLayout("<label>Enabled</label>", "", renderActionRow("<button>Save</button>")), '<div class="form-layout"><label>Enabled</label><div class="form-action-row"><button>Save</button></div></div>');
+});
+
+test("Discord integration uses shared form spacing instead of a feature exception", () => {
+  assert.match(discordSource, /renderFormLayout\(/);
+  assert.match(discordSource, /renderActionRow\(/);
+  assert.doesNotMatch(discordStyles, /form\[action="\/admin\/discord"\] > \.button-primary/);
 });
