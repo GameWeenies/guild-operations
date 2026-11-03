@@ -123,6 +123,8 @@ Use the broadest owner already earned:
 
 Navigation belongs to the shell. Page and module identity—titles, section labels, event states, and domain status treatments—belongs to the page/module.
 
+Standard panel boundaries are renderer-owned through `renderPanel`; feature pages supply content and may select a semantic outer element or additional classes. Domain-specific internal layouts remain feature-owned. Existing panel markup should migrate incrementally without changing interactive form boundaries or replacing specialized interfaces.
+
 Administrative section groups use the renderer-owned `renderAdminSectionStack` helper so sibling sections inherit the existing `admin-sections` spacing contract. Roster panels use `renderPageSectionStack`. Producers still own their headings and domain-specific content.
 
 ## Application origin
