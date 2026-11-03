@@ -10,7 +10,7 @@ import {
   type OperationalRecordKind,
 } from "../../operational-inspection.js";
 import type { AssetRegistry } from "../assets.js";
-import { renderPage } from "../render.js";
+import { renderPage, renderAdminSectionStack, renderActionRow } from "../render.js";
 import { viewerForRequest } from "../viewer.js";
 
 function escapeHtml(value: string): string {
@@ -125,7 +125,7 @@ export async function registerOperationsAdminPage(
     const sections = canInspect ? renderInspection(records, source, kind) : "";
 
     const body = sections
-      ? `<div class="admin-sections">${sections}</div>`
+      ? renderAdminSectionStack(sections)
       : `<section class="admin-unavailable"><h2>Logs are not available for this account.</h2></section>`;
 
     const html = renderPage(assets, {
