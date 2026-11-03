@@ -227,6 +227,16 @@ export function renderPanel(content: string, options: { element?: "div" | "artic
   return `<${element} class="${classes.join(" ")}">${content}</${element}>`;
 }
 
+/** Space ordinary form groups without taking ownership of their controls. */
+export function renderFormLayout(...groups: string[]): string {
+  return `<div class="form-layout">${groups.filter(Boolean).join("")}</div>`;
+}
+
+/** Align actions and adjacent status text with shared responsive spacing. */
+export function renderActionRow(...actions: string[]): string {
+  return `<div class="form-action-row">${actions.filter(Boolean).join("")}</div>`;
+}
+
 /** Compose administrative sections with shared spacing. */
 export function renderAdminSectionStack(...sections: string[]): string {
   return `<div class="admin-sections">${sections.filter(Boolean).join("")}</div>`;
