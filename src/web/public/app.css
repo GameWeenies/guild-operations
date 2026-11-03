@@ -2284,3 +2284,10 @@ h1 {
 @media (max-width: 30rem) {
   .article-listing-header { align-items: start; flex-direction: column; }
 }
+
+/* Shared renderer composition: sibling panels must not touch. */
+.page-section-stack {
+  display: grid;
+  gap: 1.25rem;
+  align-content: start;
+}
