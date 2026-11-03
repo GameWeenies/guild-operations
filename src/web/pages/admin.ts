@@ -29,7 +29,7 @@ import { GUILD_THEMES, guildTheme, isGuildThemeKey, setGuildTheme, type GuildThe
 import { guildPresentation, parseGuildPresentationUrl, setGuildPresentationDestinations, setGuildSettingsLocationAcknowledged, type GuildPresentation } from "../../core/presentation/guild-presentation.js";
 import { guildHomepage, parseGuildHomepage, setGuildHomepage, type GuildHomepage, type GuildHomepagePrimitive } from "../../core/presentation/guild-homepage.js";
 import type { AssetRegistry } from "../assets.js";
-import { renderAdminSectionStack, renderGuildSettingsHeader, renderPage, renderPanel } from "../render.js";
+import { renderAdminSectionStack, renderGuildSettingsHeader, renderPage, renderPanel, renderSettingsWorkspaceNavigation } from "../render.js";
 import { viewerForRequest } from "../viewer.js";
 import { renderDiscordContextSetting } from "./discord-admin.js";
 import { publishOperationalRecord } from "../../operational-inspection.js";
@@ -121,6 +121,9 @@ function renderPermissionPolicies(policies: GuildCapabilityPolicySet, canRename:
   return `<div class="rank-administration-layout"><nav class="permission-index" aria-label="Select guild rank"><h3>Select a rank</h3>${index}</nav><div class="rank-workspaces">${sections}</div></div>`;
 }
 
+const appearanceWorkspaces = [{ label: "Appearance", href: "/admin/appearance" }, { label: "Homepage", href: "/admin/appearance/homepage" }] as const;
+const rosterWorkspaces = [{ label: "Members", href: "/admin/roster/members" }, { label: "Ranks", href: "/admin/roster/ranks" }, { label: "Synchronization", href: "/admin/roster/synchronization" }] as const;
+
 export async function registerAdminPage(app: FastifyInstance, assets: AssetRegistry): Promise<void> {
   app.get("/admin", async (_request, reply) => reply.redirect("/admin/general"));
 
@@ -143,28 +146,37 @@ export async function registerAdminPage(app: FastifyInstance, assets: AssetRegis
     return reply.header("Cache-Control", "no-cache").type("text/html; charset=utf-8").send(html);
   });
 
-  app.get("/admin/appearance", async (request, reply) => {
-    const sessionToken = request.cookies[SESSION_COOKIE_NAME];
-    const [viewer, identity] = await Promise.all([viewerForRequest(sessionToken), authenticatedIdentity(sessionToken)]);
-    if (!identity) return reply.code(401).send("Authentication is required.");
-    const [canConfigureTheme, canConfigureGuildPresentation, theme, presentation, homepage] = await Promise.all([
-      identityHasGuildCapability(identity.identityId, THEME_CONFIGURE_CAPABILITY),
-      identityHasGuildCapability(identity.identityId, GUILD_PRESENTATION_CONFIGURE_CAPABILITY),
-      guildTheme(),
-      guildPresentation(),
-      guildHomepage(),
-    ]);
-    const themeSettings = administrationSection("appearance", "appearance-heading", "Appearance", renderThemeSettings(theme).replaceAll("<select data-theme-select>", `<select data-theme-select${canConfigureTheme ? "" : " disabled"}>`).replaceAll("<button type=\"submit\" class=\"button-primary\" data-theme-save>", `<button type="submit" class="button-primary" data-theme-save${canConfigureTheme ? "" : " disabled"}>`));
-    const presentationSettings = administrationSection("guild-presentation", "guild-presentation-heading", "Guild links", canConfigureGuildPresentation ? renderGuildPresentationSettings(presentation) : renderGuildPresentationSettings(presentation).replaceAll("<input ", "<input disabled ").replaceAll("<button type=\"submit\"", "<button disabled type=\"submit\""));
-    const homepageSettings = canConfigureGuildPresentation
-      ? renderHomepageSettings(homepage)
-      : renderHomepageSettings(homepage).replaceAll("<input ", "<input disabled ").replaceAll("<textarea ", "<textarea disabled ").replaceAll("<select ", "<select disabled ").replaceAll("<button ", "<button disabled ");
-    const homepageSection = administrationSection("homepage-presentation", "homepage-presentation-heading", "Homepage", homepageSettings);
-    const html = renderPage(assets, { pathname: "/admin/appearance", title: `Appearance Settings · ${viewer.guildPresentation.guildName} Guild Operations`, description: "Configure the guild appearance and homepage.", viewer, stylesheets: ["admin.css"], scripts: ["admin.js", "homepage-admin.js"], header: renderGuildSettingsHeader("Appearance", "Configure how your guild is presented in Guild Operations."), body: renderAdminSectionStack(themeSettings, presentationSettings, homepageSection) });
-    return reply.header("Cache-Control", "no-cache").type("text/html; charset=utf-8").send(html);
-  });
+  for (const workspace of ["appearance", "homepage"] as const) {
+    const pathname = workspace === "appearance" ? "/admin/appearance" : "/admin/appearance/homepage";
+    app.get(pathname, async (request, reply) => {
+      const sessionToken = request.cookies[SESSION_COOKIE_NAME];
+      const [viewer, identity] = await Promise.all([viewerForRequest(sessionToken), authenticatedIdentity(sessionToken)]);
+      if (!identity) return reply.code(401).send("Authentication is required.");
+      const navigation = renderSettingsWorkspaceNavigation("Appearance", appearanceWorkspaces, pathname);
+      if (workspace === "homepage") {
+        const [canConfigureGuildPresentation, homepage] = await Promise.all([
+          identityHasGuildCapability(identity.identityId, GUILD_PRESENTATION_CONFIGURE_CAPABILITY), guildHomepage(),
+        ]);
+        const homepageSettings = canConfigureGuildPresentation
+          ? renderHomepageSettings(homepage)
+          : renderHomepageSettings(homepage).replaceAll("<input ", "<input disabled ").replaceAll("<textarea ", "<textarea disabled ").replaceAll("<select ", "<select disabled ").replaceAll("<button ", "<button disabled ");
+        const homepageSection = administrationSection("homepage-presentation", "homepage-presentation-heading", "Homepage", homepageSettings);
+        const html = renderPage(assets, { pathname, title: `Homepage Settings · ${viewer.guildPresentation.guildName} Guild Operations`, description: "Configure the guild homepage.", viewer, stylesheets: ["admin.css"], scripts: ["homepage-admin.js"], header: `${renderGuildSettingsHeader("Appearance", "Configure how your guild is presented in Guild Operations.")}${navigation}`, body: renderAdminSectionStack(homepageSection) });
+        return reply.header("Cache-Control", "no-cache").type("text/html; charset=utf-8").send(html);
+      }
+      const [canConfigureTheme, canConfigureGuildPresentation, theme, presentation] = await Promise.all([
+        identityHasGuildCapability(identity.identityId, THEME_CONFIGURE_CAPABILITY),
+        identityHasGuildCapability(identity.identityId, GUILD_PRESENTATION_CONFIGURE_CAPABILITY),
+        guildTheme(), guildPresentation(),
+      ]);
+      const themeSettings = administrationSection("appearance", "appearance-heading", "Appearance", renderThemeSettings(theme).replaceAll("<select data-theme-select>", `<select data-theme-select${canConfigureTheme ? "" : " disabled"}>`).replaceAll("<button type=\"submit\" class=\"button-primary\" data-theme-save>", `<button type="submit" class="button-primary" data-theme-save${canConfigureTheme ? "" : " disabled"}>`));
+      const presentationSettings = administrationSection("guild-presentation", "guild-presentation-heading", "Guild links", canConfigureGuildPresentation ? renderGuildPresentationSettings(presentation) : renderGuildPresentationSettings(presentation).replaceAll("<input ", "<input disabled ").replaceAll("<button type=\"submit\"", "<button disabled type=\"submit\""));
+      const html = renderPage(assets, { pathname, title: `Appearance Settings · ${viewer.guildPresentation.guildName} Guild Operations`, description: "Configure the guild appearance.", viewer, stylesheets: ["admin.css"], scripts: ["admin.js"], header: `${renderGuildSettingsHeader("Appearance", "Configure how your guild is presented in Guild Operations.")}${navigation}`, body: renderAdminSectionStack(themeSettings, presentationSettings) });
+      return reply.header("Cache-Control", "no-cache").type("text/html; charset=utf-8").send(html);
+    });
+  }
 
-  app.get("/admin/homepage", async (_request, reply) => reply.redirect("/admin/appearance"));
+  app.get("/admin/homepage", async (_request, reply) => reply.redirect("/admin/appearance/homepage"));
 
   app.get("/admin/modules", async (request, reply) => {
     const sessionToken = request.cookies[SESSION_COOKIE_NAME];
@@ -259,7 +271,7 @@ export async function registerAdminPage(app: FastifyInstance, assets: AssetRegis
     const developmentAuthority = identity ? hasDevelopmentGuildMasterAuthority(identity.identityId) : false;
     const canRename = identity ? (developmentAuthority || (await effectiveGuildAuthority(identity.identityId))?.rankIndex === 0) : false;
     const content = authorized && policies ? `<section class="permission-administration" aria-labelledby="permission-heading"><div class="permission-intro"><h2 id="permission-heading">Guild ranks</h2><p>Start with a guild rank to review its display name, capabilities, and integration relationships. Lower rank numbers mean higher Guild Operations authority; Rank 0 is Guild Master.</p>${developmentAuthority ? `<p class="permission-operator-notice"><strong>Development authority override active.</strong> This access is independent of your current guild rank.</p>` : ""}</div>${renderPermissionPolicies(policies, canRename)}</section>` : `<section class="admin-unavailable" aria-labelledby="admin-unavailable-heading"><h2 id="admin-unavailable-heading">Permission administration is not available for this account.</h2></section>`;
-    const html = renderPage(assets, { pathname: "/admin/roster/ranks", title: `Roster Ranks · ${viewer.guildPresentation.guildName} Guild Operations`, description: "Configure guild rank presentation and capability access.", viewer, stylesheets: ["admin.css", "admin-permissions.css", "discord-admin.css", "roster.css"], scripts: ["admin-permissions.js"], header: `${renderGuildSettingsHeader("Roster", "Manage guild membership and ranks.")}<nav aria-label="Roster sections" class="roster-section-navigation"><a href="/admin/roster/members">Members</a><a href="/admin/roster/ranks" aria-current="page">Ranks</a><a href="/admin/roster/synchronization">Synchronization</a></nav>`, body: `${content}${discordRoleSettings}` });
+    const html = renderPage(assets, { pathname: "/admin/roster/ranks", title: `Roster Ranks · ${viewer.guildPresentation.guildName} Guild Operations`, description: "Configure guild rank presentation and capability access.", viewer, stylesheets: ["admin.css", "admin-permissions.css", "discord-admin.css", "roster.css"], scripts: ["admin-permissions.js"], header: `${renderGuildSettingsHeader("Roster", "Manage guild membership and ranks.")}${renderSettingsWorkspaceNavigation("Roster", rosterWorkspaces, "/admin/roster/ranks")}`, body: `${content}${discordRoleSettings}` });
     if (!authorized && !canConfigureDiscord) return reply.code(identity ? 403 : 401).header("Cache-Control", "no-cache").type("text/html; charset=utf-8").send(html);
     return reply.header("Cache-Control", "no-cache").type("text/html; charset=utf-8").send(html);
   });
