@@ -50,7 +50,7 @@ Guild Operations
 │
 └── Administration shell
     ├── General
-    ├── Appearance
+    ├── Appearance (Appearance, Homepage)
     ├── Roster (Members, Synchronization, Ranks)
     ├── Discord (when available)
     └── Plugins
@@ -61,12 +61,12 @@ The member-facing Application shell is for participating in the guild. Its prima
 The Administration shell exposes **Guild Settings**: controls for configuring Guild Operations behavior within the guild, subject to the capabilities granted to each viewer. `/admin` redirects to `/admin/general`. Its primary navigation groups settings by the application capability being configured:
 
 - `/admin/general` for orientation and Article publication destination;
-- `/admin/appearance` for theme, homepage composition, and guild presentation links;
+- `/admin/appearance` for theme and guild presentation links, with `/admin/appearance/homepage` for homepage composition;
 - `/admin/roster/members` (**Roster**) for member management, with `/admin/roster/synchronization` for Blizzard observation and roster authority mode, and `/admin/roster/ranks` for rank display names, capability policy, and Discord role mappings;
 - `/admin/discord` for Discord connection, server association, and integration utilities, when Discord administration is available;
 - `/admin/modules` (**Plugins**) for activity enablement and Raid/Raffle publication destinations.
 
-The legacy `/admin/homepage` GET redirects to Appearance. Existing configuration mutation endpoints retain their backend authorization requirements. In particular, Discord role mapping requires Discord configuration authority independently of permission-policy administration authority.
+The legacy `/admin/homepage` GET redirects to `/admin/appearance/homepage`. Existing configuration mutation endpoints retain their backend authorization requirements. In particular, Discord role mapping requires Discord configuration authority independently of permission-policy administration authority.
 
 Operational inspection remains available at `/admin/history` but is no longer a top-level Guild Settings destination. Host-owned installation, credentials, deployment, and recovery are outside Guild Settings.
 
@@ -163,3 +163,7 @@ Articles are a separate future content concern. If Articles are introduced, the 
 ### Data tables
 
 The renderer owns table containment through `renderTableFrame` and sortable header controls through `renderSortableColumnHeader`. Features own their row data, sort comparisons and actions. Wide tables remain horizontally scrollable inside their panel. Tables that opt into `compactRecords` switch to vertically stacked, labeled rows on narrow viewports; cells supply `data-label` and sortable headers remain visible as controls. Use real table markup and `aria-sort` on the active column rather than a separate sort dropdown. The Roster Members workspace is the first compact-record consumer. Other Roster review and reconciliation grids retain scrollable comparison tables, because their columns are meaningful together.
+
+## Settings categories and workspaces
+
+Guild Settings is organized into categories. Every category has one or more focused, navigable workspaces; a single-workspace category needs no subdivision navigation. The shared `renderSettingsWorkspaceNavigation` renderer owns links, active state, responsive spacing, and accessibility for categories with multiple workspaces. A workspace is a presentation and navigation boundary, not a new backend module or authority boundary. Routes retain their existing authorization and mutation behavior. Roster has Members, Ranks, and Synchronization workspaces; Appearance has Appearance and Homepage workspaces. Do not create additional navigation for single-workspace categories without a concrete need.
