@@ -35,16 +35,8 @@ function refreshSave(workspace) {
   const changes = rankChanges(workspace);
   button.disabled = saving.has(workspace) || !(changes.nameChanged || changes.roleChanged || changes.capabilities.length);
 }
-const requestedRank = location.hash.match(/^#rank-(\\d+)$/)?.[1];
+const requestedRank = location.hash.match(/^#rank-(\d+)$/)?.[1];
 if (requestedRank) document.getElementById(`rank-${requestedRank}`)?.setAttribute("open", "");
-
-for (const workspace of rankWorkspaces) workspace.hidden = workspace.id !== `rank-${rankIndex}`;
-}
-for (const button of rankSelectors) button.addEventListener("click", () => selectRank(button.dataset.rankSelect));
-if (rankSelectors.length) {
-  const requestedRank = location.hash.match(/^#rank-(\d+)$/)?.[1];
-  selectRank(rankSelectors.some(button => button.dataset.rankSelect === requestedRank) ? requestedRank : rankSelectors[0].dataset.rankSelect);
-}
 
 for (const workspace of rankWorkspaces) {
   const name = workspace.querySelector('[data-rank-name-form] input[name="displayName"]');
