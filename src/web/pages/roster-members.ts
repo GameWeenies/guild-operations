@@ -15,7 +15,7 @@ import type { FastifyInstance } from "fastify";
 import { authenticatedIdentity, SESSION_COOKIE_NAME } from "../../auth.js";
 import { manualRosterInitializationPreview } from "../../core/guild/roster-initialization-operation.js";
 import type { AssetRegistry } from "../assets.js";
-import { renderPage, renderPageSectionStack, renderPanel } from "../render.js";
+import { renderPage, renderPageSectionStack, renderPanel, renderTableFrame, renderSortableColumnHeader } from "../render.js";
 import { viewerForRequest } from "../viewer.js";
 
 function escapeHtml(value: string): string {
@@ -130,15 +130,14 @@ export async function registerRosterMembersPage(app: FastifyInstance, assets: As
       const discrepancy = member.discrepancy
         ? ` <span title="Blizzard observed: ${member.observedRank === null ? "Not present" : `Rank ${member.observedRank}`}. Guild Operations declared: Rank ${member.rankIndex}.">⚠</span>`
         : "";
-      const controls = manualControls ? `<td><div class="roster-member-controls" data-member-id="${escapeHtml(member.characterRecordId)}"><select aria-label="Rank for ${name}" data-member-rank>${ranks.map((rank) => `<option value="${rank.rankIndex}"${rank.rankIndex === member.rankIndex ? " selected" : ""}>${escapeHtml(rank.displayName)}</option>`).join("")}</select><button type="button" class="button-secondary" data-member-save disabled>Save rank</button><button type="button" class="button-secondary" data-member-remove>Remove</button><span role="status" aria-live="polite" data-member-status></span></div></td>` : "";
+      const controls = manualControls ? `<td data-label="Actions"><div class="roster-member-controls" data-member-id="${escapeHtml(member.characterRecordId)}"><select aria-label="Rank for ${name}" data-member-rank>${ranks.map((rank) => `<option value="${rank.rankIndex}"${rank.rankIndex === member.rankIndex ? " selected" : ""}>${escapeHtml(rank.displayName)}</option>`).join("")}</select><button type="button" class="button-secondary" data-member-save disabled>Save rank</button><button type="button" class="button-secondary" data-member-remove>Remove</button><span role="status" aria-live="polite" data-member-status></span></div></td>` : "";
       return `<tr data-roster-member-row data-rank-index="${member.rankIndex}" data-character-name="${name}"><td>${name} ${member.level === null ? "" : `(Level ${member.level})`}</td>
         <td>${escapeHtml(member.rankDisplayName ?? `Rank ${member.rankIndex}`)}${discrepancy}</td>${controls}</tr>`;
     }).join("");
     const membersTable = `${renderPanel(`<h2>Members</h2>
       <p>${membersView.mode === "manual" ? "Guild Operations declared membership is authoritative." : "Blizzard-observed membership is authoritative. This roster is read-only."}</p>
-      <div class="roster-sort-controls"><label for="roster-member-sort">Sort by</label><select id="roster-member-sort" data-roster-member-sort><option value="rank">Rank (numerical)</option><option value="name-asc">Name (A–Z)</option><option value="name-desc">Name (Z–A)</option></select></div>
-      <div class="roster-review-scroll"><table><thead><tr><th>Character-Realm (level)</th><th>Rank</th>${manualControls ? "<th>Actions</th>" : ""}</tr></thead>
-      <tbody>${memberRows || `<tr><td colspan="${manualControls ? 3 : 2}">No members in the effective roster.</td></tr>`}</tbody></table></div>
+      ${renderTableFrame(`<table data-roster-sort-table><thead><tr>${renderSortableColumnHeader("Character", "name")}${renderSortableColumnHeader("Rank", "rank", true)}${manualControls ? '<th scope="col">Actions</th>' : ""}</tr></thead>
+      <tbody>${memberRows || `<tr><td colspan="${manualControls ? 3 : 2}">No members in the effective roster.</td></tr>`}</tbody></table>`, { compactRecords: true })}
       ${manualControls ? `<div class="roster-add-member"><h3>Add member</h3><label>Character <select data-member-add-character>${(candidates?.characters ?? []).map((character) => `<option value="${escapeHtml(character.characterRecordId)}">${escapeHtml(character.name)}-${escapeHtml(character.realm ?? "Unknown realm")}</option>`).join("")}</select></label><label>Rank <select data-member-add-rank>${rankOptions}</select></label><button type="button" class="button-primary" data-member-add${candidates?.characters.length ? "" : " disabled"}>Add member</button><p role="status" aria-live="polite" data-member-add-status></p></div>` : ""}
     `, { element: "section", attributes: { "data-roster-members": true } })}`;
     const applicantRows = (applications?.applications ?? []).map((application) => {
