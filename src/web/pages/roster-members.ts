@@ -62,7 +62,7 @@ export async function registerRosterMembersPage(app: FastifyInstance, assets: As
           <span>${escapeHtml(member.name)}-${escapeHtml(member.realm || "Unknown realm")}</span></label></td>
           <td>${member.level ?? "—"}</td><td>Rank ${member.rankIndex}</td></tr>`,
       ).join("");
-      const review = `<section class="settings-panel" data-roster-review data-snapshot-version="${escapeHtml(preview.snapshotVersion)}">
+      const review = `${renderPanel(`
         <h2>Review initial membership</h2>
         <p>Blizzard's roster may be incomplete or stale. Select only characters you want to include in Guild Operations. Their observed ranks will be imported; missing characters can be added after initialization. The character used to verify the Guild Master will be included as Rank 0 regardless of this selection, to establish initial operational administration.</p>
         <p><strong>${preview.members.length}</strong> Blizzard-observed characters · <strong data-roster-selected>${preview.members.length}</strong> selected</p>
@@ -72,7 +72,7 @@ export async function registerRosterMembersPage(app: FastifyInstance, assets: As
         <label class="roster-review-confirm"><input type="checkbox" data-roster-confirm> I have reviewed this selection and understand that Blizzard's snapshot may be stale.</label>
         <button type="button" class="button-primary" data-roster-commit disabled>Initialize Manual roster</button>
         <p role="status" aria-live="polite" data-roster-status></p>
-      </section>`;
+      `, { element: "section", attributes: { "data-roster-review": true, "data-snapshot-version": preview.snapshotVersion } })}`;
       return reply.header("Cache-Control", "no-store").type("text/html; charset=utf-8").send(renderPage(assets, {
         pathname: "/admin/roster/members",
         title: `Roster · ${viewer.guildPresentation.guildName} Guild Operations`,
@@ -109,7 +109,7 @@ export async function registerRosterMembersPage(app: FastifyInstance, assets: As
           <td>${difference.declaredRank === null ? "Not declared" : `Rank ${difference.declaredRank}`}</td>
           <td>${difference.observedRank === null ? "Not observed" : `Rank ${difference.observedRank}`}</td></tr>`;
       }).join("");
-      reconciliation = `<section class="settings-panel" data-roster-reconciliation data-snapshot-version="${escapeHtml(comparison.snapshotVersion)}">
+      reconciliation = `${renderPanel(`
         <h2>Switch to Manual roster</h2>
         <p>Review differences between the declared roster and the latest Blizzard observation. Selected differences will adopt Blizzard's observed membership or rank; unselected differences will retain the declared value.</p>
         <p>Blizzard snapshot acquired: ${comparison.observationAcquiredAt ? escapeHtml(new Date(comparison.observationAcquiredAt).toLocaleString("en-US", { timeZone: "UTC", timeZoneName: "short" })) : "Unavailable"}.
@@ -122,7 +122,7 @@ export async function registerRosterMembersPage(app: FastifyInstance, assets: As
         <label class="roster-review-confirm"><input type="checkbox" data-reconciliation-confirm> I have reviewed the differences and understand that Blizzard's snapshot may be stale.</label>
         <button type="button" class="button-primary" data-reconciliation-commit disabled>Activate Manual roster</button>
         <p role="status" aria-live="polite" data-reconciliation-status></p>
-      </section>`;
+      `, { element: "section", attributes: { "data-roster-reconciliation": true, "data-snapshot-version": comparison.snapshotVersion } })}`;
     }
     const sortedMembers = [...membersView.members].sort((a, b) => a.rankIndex - b.rankIndex || `${a.name}-${a.realm ?? ""}`.localeCompare(`${b.name}-${b.realm ?? ""}`, undefined, { sensitivity: "base" }));
     const memberRows = sortedMembers.map((member) => {
