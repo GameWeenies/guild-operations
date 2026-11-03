@@ -51,7 +51,7 @@ Guild Operations
 └── Administration shell
     ├── General
     ├── Appearance
-    ├── Ranks
+    ├── Roster (Members, Synchronization, Ranks)
     ├── Discord (when available)
     └── Plugins
 ```
@@ -60,9 +60,9 @@ The member-facing Application shell is for participating in the guild. Its prima
 
 The Administration shell exposes **Guild Settings**: controls for configuring Guild Operations behavior within the guild, subject to the capabilities granted to each viewer. `/admin` redirects to `/admin/general`. Its primary navigation groups settings by the application capability being configured:
 
-- `/admin/general` for guild synchronization, orientation, and Article publication destination;
+- `/admin/general` for orientation and Article publication destination;
 - `/admin/appearance` for theme, homepage composition, and guild presentation links;
-- `/admin/permissions` (**Ranks**) for rank display names, capability policy, and Discord role mappings;
+- `/admin/roster/members` (**Roster**) for member management, with `/admin/roster/synchronization` for Blizzard observation and roster authority mode, and `/admin/roster/ranks` for rank display names, capability policy, and Discord role mappings;
 - `/admin/discord` for Discord connection, server association, and integration utilities, when Discord administration is available;
 - `/admin/modules` (**Plugins**) for activity enablement and Raid/Raffle publication destinations.
 
@@ -91,7 +91,7 @@ The shared renderer still supports the previous module administration destinatio
 
 Published destinations are filtered against backend authority before they reach rendering. The selector is a projection of authorized legacy destinations, not an authorization boundary of its own. Module routes must continue enforcing their own authority requirements.
 
-Do not extend the legacy destination registration contract. New Administration behavior should target General or Permissions according to [`../doctrine/module-conformity.md`](../doctrine/module-conformity.md), and privileged domain operations should remain with the domain being operated.
+Do not extend the legacy destination registration contract. New Administration behavior should target the appropriate Guild Settings destination according to [`../doctrine/module-conformity.md`](../doctrine/module-conformity.md), and privileged domain operations should remain with the domain being operated.
 
 ## Secondary navigation
 
@@ -122,6 +122,8 @@ Use the broadest owner already earned:
 3. inline rendering for genuinely exceptional one-off surfaces.
 
 Navigation belongs to the shell. Page and module identity—titles, section labels, event states, and domain status treatments—belongs to the page/module.
+
+Administrative section groups use the renderer-owned `renderAdminSectionStack` helper so sibling sections inherit the existing `admin-sections` spacing contract. Roster panels use `renderPageSectionStack`. Producers still own their headings and domain-specific content.
 
 ## Application origin
 
