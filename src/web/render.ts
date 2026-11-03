@@ -12,6 +12,12 @@ function escapeHtml(value: string): string {
     .replaceAll("'", "&#39;");
 }
 
+/** Navigate focused workspaces within one Guild Settings category. Single-workspace categories need no navigation. */
+export function renderSettingsWorkspaceNavigation(category: string, workspaces: readonly { label: string; href: string }[], activeHref: string): string {
+  if (workspaces.length <= 1) return "";
+  return `<nav aria-label="${escapeHtml(category)} workspaces" class="settings-workspace-navigation">${workspaces.map((workspace) => `<a href="${escapeHtml(workspace.href)}"${workspace.href === activeHref ? ' aria-current="page"' : ""}>${escapeHtml(workspace.label)}</a>`).join("")}</nav>`;
+}
+
 /** Shared header for the five Guild Settings destinations. */
 export function renderGuildSettingsHeader(section: string, description: string): string {
   return `<div class="admin-page-header"><p class="eyebrow">Guild Settings</p><h1 id="page-title">${escapeHtml(section)}</h1><p class="lede">${escapeHtml(description)}</p></div>`;
