@@ -15,7 +15,7 @@ import type { FastifyInstance } from "fastify";
 import { authenticatedIdentity, SESSION_COOKIE_NAME } from "../../auth.js";
 import { manualRosterInitializationPreview } from "../../core/guild/roster-initialization-operation.js";
 import type { AssetRegistry } from "../assets.js";
-import { renderPage, renderPageSectionStack, renderPanel, renderTableFrame, renderSortableColumnHeader } from "../render.js";
+import { renderPage, renderPageSectionStack, renderPanel, renderTableFrame, renderSortableColumnHeader, renderSettingsWorkspaceNavigation } from "../render.js";
 import { viewerForRequest } from "../viewer.js";
 
 function escapeHtml(value: string): string {
@@ -24,7 +24,11 @@ function escapeHtml(value: string): string {
 }
 
 function rosterNavigation(section: "members" | "synchronization"): string {
-  return `<nav aria-label="Roster sections" class="roster-section-navigation"><a href="/admin/roster/members"${section === "members" ? ' aria-current="page"' : ""}>Members</a><a href="/admin/roster/ranks">Ranks</a><a href="/admin/roster/synchronization"${section === "synchronization" ? ' aria-current="page"' : ""}>Synchronization</a></nav>`;
+  return renderSettingsWorkspaceNavigation("Roster", [
+    { label: "Members", href: "/admin/roster/members" },
+    { label: "Ranks", href: "/admin/roster/ranks" },
+    { label: "Synchronization", href: "/admin/roster/synchronization" },
+  ], `/admin/roster/${section}`);
 }
 
 export async function registerRosterMembersPage(app: FastifyInstance, assets: AssetRegistry): Promise<void> {
