@@ -37,6 +37,23 @@ test("Synchronization has its own roster section, not Members or General", () =>
   assert.match(roster, /renderGuildRefreshSchedule\(refreshSchedule\)/);
   assert.match(roster, /renderGuildRefreshOperation\(refreshStatus, canRefresh\)/);
   assert.match(roster, /scripts: \["roster\.js", "admin\.js"\]/);
-  const general = admin.slice(admin.indexOf('app.get("/admin/general"'), admin.indexOf('app.get("/admin/appearance"'));
+  const general = admin.slice(admin.indexOf('app.get("/admin/general"'), admin.indexOf('for (const workspace of ["appearance", "homepage"]'));
   assert.doesNotMatch(general, /Guild synchronization|renderGuildRefreshSchedule|renderGuildRefreshOperation/);
+});
+
+test("category workspaces use one shared navigation renderer", () => {
+  assert.match(render, /export function renderSettingsWorkspaceNavigation/);
+  assert.match(render, /if \(workspaces\.length <= 1\) return ""/);
+  assert.match(render, /aria-current/);
+  assert.match(roster, /renderSettingsWorkspaceNavigation\("Roster"/);
+  assert.match(admin, /renderSettingsWorkspaceNavigation\("Roster", rosterWorkspaces/);
+  assert.match(admin, /renderSettingsWorkspaceNavigation\("Appearance", appearanceWorkspaces/);
+});
+
+test("Homepage has its own Appearance workspace while preserving mutation endpoint", () => {
+  assert.match(admin, /"\/admin\/appearance\/homepage"/);
+  assert.match(admin, /app\.get\("\/admin\/homepage"[^\n]*redirect\("\/admin\/appearance\/homepage"\)/);
+  assert.match(admin, /app\.put\("\/admin\/homepage"/);
+  assert.match(admin, /body: renderAdminSectionStack\(themeSettings, presentationSettings\)/);
+  assert.match(admin, /body: renderAdminSectionStack\(homepageSection\)/);
 });
