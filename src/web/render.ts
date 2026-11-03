@@ -251,7 +251,7 @@ export function renderActionRow(...actions: string[]): string {
 
 /** Keep wide tables within their panel; compact tables may present rows as labeled records. */
 export function renderTableFrame(table: string, options: { compactRecords?: boolean; className?: string } = {}): string {
-  const classes = ["data-table-frame", ...(options.compactRecords ? ["data-table-records"] : []), ...(options.className ? options.className.split(/\\s+/).filter(Boolean) : [])];
+  const classes = ["data-table-frame", ...(options.compactRecords ? ["data-table-records"] : []), ...(options.className ? options.className.split(/\s+/).filter(Boolean) : [])];
   return `<div class="${classes.join(" ")}">${table}</div>`;
 }
 
