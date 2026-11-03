@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { readFileSync } from "node:fs";
-import { renderActionRow, renderFormLayout, renderPanel } from "../src/web/render.js";
+import { renderActionRow, renderFormLayout, renderPanel, renderTableFrame, renderSortableColumnHeader } from "../src/web/render.js";
 
 test("renderer owns shared panel boundary and preserves feature content", () => {
   assert.equal(renderPanel("<p>Content</p>"), '<div class="settings-panel"><p>Content</p></div>');
@@ -61,4 +61,19 @@ test("standard settings panel boundaries are renderer-owned", () => {
   assert.doesNotMatch(rosterSourceForPanels, /<section class="settings-panel"/);
   assert.match(adminSource, /element: "form", className: "theme-settings"/);
   assert.match(rosterSourceForPanels, /"data-snapshot-version": comparison.snapshotVersion/);
+});
+
+test("renderer provides contained tables and accessible sortable headers", () => {
+  assert.equal(renderTableFrame("<table></table>", { compactRecords: true }), '<div class="data-table-frame data-table-records"><table></table></div>');
+  assert.equal(renderSortableColumnHeader("Rank", "rank", true), '<th scope="col" aria-sort="ascending"><button type="button" class="data-table-sort" data-table-sort="rank" aria-label="Sort by Rank"><span>Rank</span><span class="data-table-sort-indicator" aria-hidden="true">↑</span></button></th>');
+  assert.throws(() => renderSortableColumnHeader("Rank", "rank\" onclick=\"bad"), /Invalid table sort key/);
+});
+
+test("Roster Members uses shared table and header sorting, not a dropdown", () => {
+  const rosterScript = readFileSync(new URL("../src/web/public/roster.js", import.meta.url), "utf8");
+  assert.match(rosterSource, /renderTableFrame\(/);
+  assert.match(rosterSource, /renderSortableColumnHeader\("Character", "name"\)/);
+  assert.doesNotMatch(rosterSource, /data-roster-member-sort/);
+  assert.match(rosterScript, /aria-sort/);
+  assert.doesNotMatch(rosterScript, /data-roster-member-sort/);
 });
