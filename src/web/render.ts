@@ -220,6 +220,13 @@ function renderFooter(viewer: WebViewer): string {
   </div></footer>`;
 }
 
+/** Render the shared panel boundary; features retain ownership of its contents. */
+export function renderPanel(content: string, options: { element?: "div" | "article" | "section"; className?: string } = {}): string {
+  const element = options.element ?? "div";
+  const classes = ["settings-panel", ...(options.className ? options.className.split(/\\s+/).filter(Boolean) : [])];
+  return `<${element} class="${classes.join(" ")}">${content}</${element}>`;
+}
+
 /** Compose administrative sections with shared spacing. */
 export function renderAdminSectionStack(...sections: string[]): string {
   return `<div class="admin-sections">${sections.filter(Boolean).join("")}</div>`;
