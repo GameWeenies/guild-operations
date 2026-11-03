@@ -223,7 +223,7 @@ function renderFooter(viewer: WebViewer): string {
 /** Render the shared panel boundary; features retain ownership of its contents. */
 export function renderPanel(content: string, options: { element?: "div" | "article" | "section"; className?: string } = {}): string {
   const element = options.element ?? "div";
-  const classes = ["settings-panel", ...(options.className ? options.className.split(/\\s+/).filter(Boolean) : [])];
+  const classes = ["settings-panel", ...(options.className ? options.className.split(/\s+/).filter(Boolean) : [])];
   return `<${element} class="${classes.join(" ")}">${content}</${element}>`;
 }
 
