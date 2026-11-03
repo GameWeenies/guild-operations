@@ -188,6 +188,13 @@ button:disabled,
 }
 
 
+/* Renderer-owned spacing for ordinary form groups and action controls. */
+.form-layout { display: grid; gap: 1.25rem; }
+.form-action-row { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; }
+@media (max-width: 35rem) {
+  .form-action-row { align-items: stretch; }
+}
+
 .module-landing-header {
   display: flex;
   align-items: end;
