@@ -190,18 +190,6 @@
 .rank-relationships p { margin: 0; }
 .permission-index a small { opacity: .7; }
 
-/* Selected-rank administration workspace */
-.rank-administration-layout { display: grid; grid-template-columns: minmax(12rem, 15rem) minmax(0, 1fr); gap: 1rem; margin-top: 1.25rem; align-items: start; }
-.rank-administration-layout .permission-index { display: grid; gap: .35rem; margin: 0; padding: 0; border: 0; }
-.permission-index h3 { margin: 0 0 .4rem; font-size: .9rem; color: var(--theme-text-secondary); }
-.rank-selection { width: 100%; display: grid; gap: .25rem; text-align: left; padding: .75rem .85rem; border-radius: .7rem; border: 1px solid rgba(255,255,255,.1); background: rgba(255,255,255,.025); color: inherit; cursor: pointer; }
-.rank-selection small { color: var(--theme-text-muted); }
-.rank-selection[aria-pressed="true"] { border-color: var(--theme-accent); background: rgba(255,255,255,.08); }
-.rank-administration-layout .rank-workspaces { margin: 0; min-width: 0; }
-.rank-workspace[hidden] { display: none !important; }
-.rank-capability-details:not([open]) { border: 1px solid rgba(255,255,255,.1); border-radius: .65rem; padding: .2rem .75rem; }
-@media (max-width: 48rem) { .rank-administration-layout { grid-template-columns: minmax(0, 1fr); } .rank-administration-layout .permission-index { grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr)); } .permission-index h3 { grid-column: 1 / -1; } }
-
 [data-discord-role-slot]:not(:empty) { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--theme-border, rgba(255,255,255,.14)); }
 [data-discord-role-slot] .discord-field { display: block; margin-bottom: .75rem; }
 .discord-role-mappings-relocated { display: none; }
@@ -223,3 +211,17 @@
 .rank-editor-section[data-discord-role-slot] select { width: 100%; }
 .rank-editor-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .8rem; padding-top: 1rem; border-top: 1px solid var(--theme-border, rgba(255,255,255,.12)); }
 .rank-editor-actions [role="status"] { color: var(--theme-text-muted); font-size: .85rem; }
+
+/* Collapsible rank cards: each rank owns its editor without a second selection surface. */
+.rank-workspaces { display: grid; gap: .75rem; margin-top: 1.25rem; }
+.rank-workspace { padding: 0; overflow: hidden; }
+.rank-workspace > summary { display: grid; gap: .25rem; padding: 1rem 1.2rem; cursor: pointer; list-style: none; position: relative; padding-right: 3rem; }
+.rank-workspace > summary::-webkit-details-marker { display: none; }
+.rank-workspace > summary::after { content: "⌄"; position: absolute; right: 1.2rem; top: 1rem; font-size: 1.3rem; color: var(--theme-text-muted); }
+.rank-workspace[open] > summary::after { transform: rotate(180deg); }
+.rank-workspace > summary strong { font-size: 1.1rem; }
+.rank-workspace > summary .rank-coordinate { margin: 0; }
+.rank-workspace > summary:focus-visible { outline: 2px solid var(--theme-accent); outline-offset: -3px; }
+.rank-workspace-content { padding: 0 1.2rem 1.2rem; }
+.rank-workspace[open] > summary { border-bottom: 1px solid var(--theme-border, rgba(255,255,255,.12)); }
+.rank-workspace-content .rank-editor-section:first-child { border-top: 0; }
