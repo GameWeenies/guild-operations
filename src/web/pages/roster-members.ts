@@ -131,8 +131,8 @@ export async function registerRosterMembersPage(app: FastifyInstance, assets: As
         ? ` <span title="Blizzard observed: ${member.observedRank === null ? "Not present" : `Rank ${member.observedRank}`}. Guild Operations declared: Rank ${member.rankIndex}.">⚠</span>`
         : "";
       const controls = manualControls ? `<td data-label="Actions"><div class="roster-member-controls" data-member-id="${escapeHtml(member.characterRecordId)}"><select aria-label="Rank for ${name}" data-member-rank>${ranks.map((rank) => `<option value="${rank.rankIndex}"${rank.rankIndex === member.rankIndex ? " selected" : ""}>${escapeHtml(rank.displayName)}</option>`).join("")}</select><button type="button" class="button-secondary" data-member-save disabled>Save rank</button><button type="button" class="button-secondary" data-member-remove>Remove</button><span role="status" aria-live="polite" data-member-status></span></div></td>` : "";
-      return `<tr data-roster-member-row data-rank-index="${member.rankIndex}" data-character-name="${name}"><td>${name} ${member.level === null ? "" : `(Level ${member.level})`}</td>
-        <td>${escapeHtml(member.rankDisplayName ?? `Rank ${member.rankIndex}`)}${discrepancy}</td>${controls}</tr>`;
+      return `<tr data-roster-member-row data-rank-index="${member.rankIndex}" data-character-name="${name}"><td data-label="Character">${name} ${member.level === null ? "" : `(Level ${member.level})`}</td>
+        <td data-label="Rank">${escapeHtml(member.rankDisplayName ?? `Rank ${member.rankIndex}`)}${discrepancy}</td>${controls}</tr>`;
     }).join("");
     const membersTable = `${renderPanel(`<h2>Members</h2>
       <p>${membersView.mode === "manual" ? "Guild Operations declared membership is authoritative." : "Blizzard-observed membership is authoritative. This roster is read-only."}</p>
