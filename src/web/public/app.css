@@ -2298,3 +2298,23 @@ h1 {
   gap: 1.25rem;
   align-content: start;
 }
+
+/* Shared table containment, sorting and opt-in mobile record presentation. */
+.data-table-frame { max-width: 100%; min-width: 0; overflow-x: auto; margin: 1rem 0; }
+.data-table-frame table { width: 100%; border-collapse: collapse; text-align: left; }
+.data-table-frame th, .data-table-frame td { padding: .8rem; border-bottom: 1px solid var(--border-color, rgba(128,128,128,.3)); }
+.data-table-sort { display: inline-flex; align-items: center; gap: .4rem; border: 0; background: transparent; color: inherit; font: inherit; font-weight: inherit; padding: .25rem 0; cursor: pointer; text-align: left; }
+.data-table-sort:focus-visible { outline: 2px solid var(--theme-accent); outline-offset: 3px; border-radius: .2rem; }
+.data-table-sort-indicator { color: var(--theme-text-muted); font-size: .85em; }
+.data-table-frame th[aria-sort="ascending"] .data-table-sort-indicator, .data-table-frame th[aria-sort="descending"] .data-table-sort-indicator { color: var(--theme-accent); }
+@media (max-width: 650px) {
+  .data-table-records { overflow-x: visible; }
+  .data-table-records table, .data-table-records tbody, .data-table-records tr, .data-table-records td { display: block; width: 100%; min-width: 0; }
+  .data-table-records thead { display: block; }
+  .data-table-records thead tr { display: flex; flex-wrap: wrap; gap: 1rem; }
+  .data-table-records thead th { display: none; border: 0; padding: .25rem 0; }
+  .data-table-records thead th[data-mobile-sort] { display: block; }
+  .data-table-records tbody tr { padding: 1rem 0; border-bottom: 1px solid var(--border-color, rgba(128,128,128,.3)); }
+  .data-table-records tbody td { border: 0; padding: .35rem 0; overflow-wrap: anywhere; }
+  .data-table-records tbody td[data-label]::before { content: attr(data-label); display: block; color: var(--theme-text-muted); font-size: .85rem; margin-bottom: .2rem; }
+}
