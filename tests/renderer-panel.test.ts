@@ -47,3 +47,18 @@ test("Discord emoji preview uses shared field and action spacing", () => {
   assert.match(preview, /name="channel_id" required/);
   assert.match(preview, /Send emoji preview/);
 });
+
+test("renderer preserves semantic panel form and data attributes safely", () => {
+  assert.equal(renderPanel("<button>Save</button>", { element: "form", className: "theme-settings", attributes: { "data-theme-settings-form": true, method: "post", action: "/admin/theme" } }), '<form class="settings-panel theme-settings" data-theme-settings-form method="post" action="/admin/theme"><button>Save</button></form>');
+  assert.equal(renderPanel("x", { element: "section", attributes: { "data-snapshot-version": 'a"b' } }), '<section class="settings-panel" data-snapshot-version="a&amp;quot;b">x</section>'.replace("&amp;quot;", "&quot;"));
+  assert.throws(() => renderPanel("x", { attributes: { onclick: "bad" } }), /Unsupported panel attribute/);
+});
+
+const adminSource = readFileSync(new URL("../src/web/pages/admin.ts", import.meta.url), "utf8");
+const rosterSourceForPanels = readFileSync(new URL("../src/web/pages/roster-members.ts", import.meta.url), "utf8");
+test("standard settings panel boundaries are renderer-owned", () => {
+  assert.doesNotMatch(adminSource, /class="[^"]*settings-panel/);
+  assert.doesNotMatch(rosterSourceForPanels, /<section class="settings-panel"/);
+  assert.match(adminSource, /element: "form", className: "theme-settings"/);
+  assert.match(rosterSourceForPanels, /"data-snapshot-version": comparison.snapshotVersion/);
+});
