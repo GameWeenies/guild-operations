@@ -1,4 +1,34 @@
-// Sort existing member rows without replacing them, preserving per-row action handlers.
+// Sort existing member rows in place, retaining their event handlers and state.
+(() => {
+  const table = document.querySelector("[data-roster-sort-table]");
+  const body = table?.querySelector("tbody");
+  const buttons = Array.from(table?.querySelectorAll("[data-table-sort]") ?? []);
+  if (!(body instanceof HTMLTableSectionElement) || !buttons.length) return;
+  let sortKey = "rank";
+  let ascending = true;
+  const compareName = (a, b) => (a.dataset.characterName ?? "").localeCompare(b.dataset.characterName ?? "", undefined, { sensitivity: "base" });
+  const update = () => {
+    const rows = Array.from(body.querySelectorAll("[data-roster-member-row]"));
+    rows.sort((a, b) => sortKey === "name"
+      ? compareName(a, b) * (ascending ? 1 : -1)
+      : (Number(a.dataset.rankIndex) - Number(b.dataset.rankIndex)) * (ascending ? 1 : -1) || compareName(a, b));
+    body.append(...rows);
+    for (const button of buttons) {
+      const active = button.dataset.tableSort === sortKey;
+      button.closest("th")?.setAttribute("aria-sort", active ? (ascending ? "ascending" : "descending") : "none");
+      const indicator = button.querySelector(".data-table-sort-indicator");
+      if (indicator) indicator.textContent = active ? (ascending ? "↑" : "↓") : "↕";
+    }
+  };
+  for (const button of buttons) button.addEventListener("click", () => {
+    const key = button.dataset.tableSort;
+    if (key !== "name" && key !== "rank") return;
+    if (sortKey === key) ascending = !ascending;
+    else { sortKey = key; ascending = true; }
+    update();
+  });
+})();
+
 (() => {
   const select = document.querySelector("[data-roster-member-sort]");
   const table = document.querySelector("[data-roster-members] tbody");
