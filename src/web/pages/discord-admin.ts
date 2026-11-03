@@ -21,7 +21,7 @@ import { discordRankRoleMappings, replaceDiscordRankRoleMappings } from "../../i
 import { guildRankDefinitions } from "../../core/guild/guild-ranks.js";
 import { requireOperationalInstallationGuildBinding } from "../../core/installation/guild-binding.js";
 import type { AssetRegistry } from "../assets.js";
-import { htmlText, renderAdminSectionStack, renderGuildSettingsHeader, renderPage, renderPanel } from "../render.js";
+import { htmlText, renderActionRow, renderAdminSectionStack, renderFormLayout, renderGuildSettingsHeader, renderPage, renderPanel } from "../render.js";
 import { viewerForRequest } from "../viewer.js";
 
 const emojiSetupsInProgress = new Set<string>();
@@ -188,11 +188,10 @@ export async function registerDiscordAdminPage(app: FastifyInstance, assets: Ass
             <div class="discord-callback"><code>${htmlText(callbackUrl)}</code><button type="button" class="button-secondary" data-copy-discord-callback>Copy</button></div>
             <p>Interactions use the Gateway; leave the Interactions Endpoint URL empty.</p>
             <form method="post" action="/admin/discord">
-              <div class="discord-enablement-row">
+              ${renderFormLayout(`<div class="discord-enablement-row">
                 <div><strong>Integration enabled</strong></div>
                 <label class="switch discord-enablement"><input type="checkbox" name="enabled" value="true"${configuration?.enabled ? " checked" : ""}><span class="switch-control" aria-hidden="true"></span><span>${configuration?.enabled ? "On" : "Off"}</span></label>
-              </div>
-              <button type="submit" class="button-primary">Save integration settings</button>
+              </div>`, renderActionRow('<button type="submit" class="button-primary">Save integration settings</button>'))}
             </form>
           </div>`}
           ${confirmServerForm}
