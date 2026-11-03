@@ -134,13 +134,13 @@ export async function registerRosterMembersPage(app: FastifyInstance, assets: As
       return `<tr data-roster-member-row data-rank-index="${member.rankIndex}" data-character-name="${name}"><td>${name} ${member.level === null ? "" : `(Level ${member.level})`}</td>
         <td>${escapeHtml(member.rankDisplayName ?? `Rank ${member.rankIndex}`)}${discrepancy}</td>${controls}</tr>`;
     }).join("");
-    const membersTable = `<section class="settings-panel" data-roster-members><h2>Members</h2>
+    const membersTable = `${renderPanel(`<h2>Members</h2>
       <p>${membersView.mode === "manual" ? "Guild Operations declared membership is authoritative." : "Blizzard-observed membership is authoritative. This roster is read-only."}</p>
       <div class="roster-sort-controls"><label for="roster-member-sort">Sort by</label><select id="roster-member-sort" data-roster-member-sort><option value="rank">Rank (numerical)</option><option value="name-asc">Name (A–Z)</option><option value="name-desc">Name (Z–A)</option></select></div>
       <div class="roster-review-scroll"><table><thead><tr><th>Character-Realm (level)</th><th>Rank</th>${manualControls ? "<th>Actions</th>" : ""}</tr></thead>
       <tbody>${memberRows || `<tr><td colspan="${manualControls ? 3 : 2}">No members in the effective roster.</td></tr>`}</tbody></table></div>
       ${manualControls ? `<div class="roster-add-member"><h3>Add member</h3><label>Character <select data-member-add-character>${(candidates?.characters ?? []).map((character) => `<option value="${escapeHtml(character.characterRecordId)}">${escapeHtml(character.name)}-${escapeHtml(character.realm ?? "Unknown realm")}</option>`).join("")}</select></label><label>Rank <select data-member-add-rank>${rankOptions}</select></label><button type="button" class="button-primary" data-member-add${candidates?.characters.length ? "" : " disabled"}>Add member</button><p role="status" aria-live="polite" data-member-add-status></p></div>` : ""}
-    </section>`;
+    `, { element: "section", attributes: { "data-roster-members": true } })}`;
     const applicantRows = (applications?.applications ?? []).map((application) => {
       const character = `${escapeHtml(application.name)}-${escapeHtml(application.realm_slug || "Unknown realm")}`;
       return `<tr data-application-id="${escapeHtml(application.application_id)}">
@@ -152,13 +152,13 @@ export async function registerRosterMembersPage(app: FastifyInstance, assets: As
           <span role="status" aria-live="polite" data-application-status></span>
         </div></td></tr>`;
     }).join("");
-    const applicantReview = manualControls ? `<section class="settings-panel" data-roster-applications>
+    const applicantReview = manualControls ? `${renderPanel(`
       <h2>Pending applications</h2>
       <p>Approve a character into the Manual roster at the selected rank, or reject the application.</p>
       ${applicantRows ? `<div class="roster-review-scroll"><table><thead><tr><th>Character-Realm (level)</th><th>Review</th></tr></thead><tbody>${applicantRows}</tbody></table></div>` :
         "<p>No pending applications.</p>"}
-    </section>` : "";
-    const syncTransition = manualControls ? `<section class="settings-panel" data-roster-blizzard-sync>
+    `, { element: "section", attributes: { "data-roster-applications": true } })}` : "";
+    const syncTransition = manualControls ? `${renderPanel(`
       <h2>Roster management mode</h2>
       <p><strong>Current mode: Manual.</strong> Guild Operations manages effective membership and ranks.</p>
       <p>Switching to Blizzard Sync makes Blizzard's last observed roster authoritative for membership and ranks. Blizzard data may be stale or incomplete, and this can immediately change access and participation. Your Manual declarations are preserved for a later return to Manual mode.</p>
@@ -167,22 +167,22 @@ export async function registerRosterMembersPage(app: FastifyInstance, assets: As
       <label class="roster-review-confirm"><input type="checkbox" data-blizzard-sync-acknowledge> I understand that Blizzard's roster may be stale or incomplete and switching authority may change guild access.</label>
       <button type="button" class="button-secondary" data-blizzard-sync-commit disabled>Switch to Blizzard Sync</button>
       <p role="status" aria-live="polite" data-blizzard-sync-status></p>
-    </section>` : "";
+    `, { element: "section", attributes: { "data-roster-blizzard-sync": true } })}` : "";
     const [refreshSchedule, refreshStatus, canSchedule] = section === "synchronization"
       ? await Promise.all([guildRefreshSchedule(), guildRefreshStatus(), identityHasGuildCapability(identity.identityId, GUILD_REFRESH_SCHEDULE_CONFIGURE_CAPABILITY)])
       : [null, null, false] as const;
     const schedule = refreshSchedule ? renderGuildRefreshSchedule(refreshSchedule) : "";
     const synchronization = refreshStatus ? `<section class="admin-section"><h2>Guild synchronization</h2>${renderPanel(`${canSchedule ? schedule : schedule.replaceAll("<input ", "<input disabled ").replaceAll("<button type=\"submit\"", "<button disabled type=\"submit\"")}${renderGuildRefreshOperation(refreshStatus, canRefresh)}`, { className: "guild-synchronization-settings" })}</section>` : "";
-    const observationControls = `<section class="settings-panel" data-roster-observation>
+    const observationControls = `${renderPanel(`
       <h2>Blizzard roster observation</h2>
       <p>Refresh retrieves Blizzard's latest available snapshot. Blizzard may return stale or incomplete membership even after a successful refresh.</p>
       <p>Last acquired: ${comparison.observationAcquiredAt ? escapeHtml(new Date(comparison.observationAcquiredAt).toLocaleString("en-US", { timeZone: "UTC", timeZoneName: "short" })) : "No snapshot available"}.</p>
       <p>Blizzard source last modified: ${comparison.sourceLastModifiedAt ? escapeHtml(new Date(comparison.sourceLastModifiedAt).toLocaleString("en-US", { timeZone: "UTC", timeZoneName: "short" })) : "Not provided"}.</p>
       <p>${comparison.mode === "manual" ? "Manual membership and ranks remain authoritative after refreshing the Blizzard observation." : "Blizzard Sync uses the observed roster for effective membership and ranks; a refresh may change access."}</p>
-    </section>`;
-    const body = section === "synchronization" ? renderPageSectionStack(synchronization, observationControls, reconciliation, syncTransition) : membersView.initialized ? renderPageSectionStack(membersTable, applicantReview) : `<section class="settings-panel"><h2>Members</h2><p>${comparison.manualInitialized
+    `, { element: "section", attributes: { "data-roster-observation": true } })}`;
+    const body = section === "synchronization" ? renderPageSectionStack(synchronization, observationControls, reconciliation, syncTransition) : membersView.initialized ? renderPageSectionStack(membersTable, applicantReview) : `${renderPanel(`<h2>Members</h2><p>${comparison.manualInitialized
       ? "The Manual roster has been initialized. Member management will be available in a subsequent release step."
-      : "Roster initialization is not available in the current management mode."}</p></section>`;
+      : "Roster initialization is not available in the current management mode."}</p>`, { element: "section" })}`;
     return reply.header("Cache-Control", "no-store").type("text/html; charset=utf-8").send(renderPage(assets, {
       pathname: `/admin/roster/${section}`,
       title: `Roster ${section === "members" ? "Members" : "Synchronization"} · ${viewer.guildPresentation.guildName} Guild Operations`,
