@@ -15,7 +15,7 @@ import type { FastifyInstance } from "fastify";
 import { authenticatedIdentity, SESSION_COOKIE_NAME } from "../../auth.js";
 import { manualRosterInitializationPreview } from "../../core/guild/roster-initialization-operation.js";
 import type { AssetRegistry } from "../assets.js";
-import { renderPage } from "../render.js";
+import { renderPage, renderPageSectionStack } from "../render.js";
 import { viewerForRequest } from "../viewer.js";
 
 function escapeHtml(value: string): string {
@@ -124,17 +124,19 @@ export async function registerRosterMembersPage(app: FastifyInstance, assets: As
         <p role="status" aria-live="polite" data-reconciliation-status></p>
       </section>`;
     }
-    const memberRows = membersView.members.map((member) => {
+    const sortedMembers = [...membersView.members].sort((a, b) => a.rankIndex - b.rankIndex || `${a.name}-${a.realm ?? ""}`.localeCompare(`${b.name}-${b.realm ?? ""}`, undefined, { sensitivity: "base" }));
+    const memberRows = sortedMembers.map((member) => {
       const name = `${escapeHtml(member.name)}-${escapeHtml(member.realm || "Unknown realm")}`;
       const discrepancy = member.discrepancy
         ? ` <span title="Blizzard observed: ${member.observedRank === null ? "Not present" : `Rank ${member.observedRank}`}. Guild Operations declared: Rank ${member.rankIndex}.">⚠</span>`
         : "";
       const controls = manualControls ? `<td><div class="roster-member-controls" data-member-id="${escapeHtml(member.characterRecordId)}"><select aria-label="Rank for ${name}" data-member-rank>${ranks.map((rank) => `<option value="${rank.rankIndex}"${rank.rankIndex === member.rankIndex ? " selected" : ""}>${escapeHtml(rank.displayName)}</option>`).join("")}</select><button type="button" class="button-secondary" data-member-save disabled>Save rank</button><button type="button" class="button-secondary" data-member-remove>Remove</button><span role="status" aria-live="polite" data-member-status></span></div></td>` : "";
-      return `<tr><td>${name} ${member.level === null ? "" : `(Level ${member.level})`}</td>
+      return `<tr data-roster-member-row data-rank-index="${member.rankIndex}" data-character-name="${name}"><td>${name} ${member.level === null ? "" : `(Level ${member.level})`}</td>
         <td>${escapeHtml(member.rankDisplayName ?? `Rank ${member.rankIndex}`)}${discrepancy}</td>${controls}</tr>`;
     }).join("");
     const membersTable = `<section class="settings-panel" data-roster-members><h2>Members</h2>
       <p>${membersView.mode === "manual" ? "Guild Operations declared membership is authoritative." : "Blizzard-observed membership is authoritative. This roster is read-only."}</p>
+      <div class="roster-sort-controls"><label for="roster-member-sort">Sort by</label><select id="roster-member-sort" data-roster-member-sort><option value="rank">Rank (numerical)</option><option value="name-asc">Name (A–Z)</option><option value="name-desc">Name (Z–A)</option></select></div>
       <div class="roster-review-scroll"><table><thead><tr><th>Character-Realm (level)</th><th>Rank</th>${manualControls ? "<th>Actions</th>" : ""}</tr></thead>
       <tbody>${memberRows || `<tr><td colspan="${manualControls ? 3 : 2}">No members in the effective roster.</td></tr>`}</tbody></table></div>
       ${manualControls ? `<div class="roster-add-member"><h3>Add member</h3><label>Character <select data-member-add-character>${(candidates?.characters ?? []).map((character) => `<option value="${escapeHtml(character.characterRecordId)}">${escapeHtml(character.name)}-${escapeHtml(character.realm ?? "Unknown realm")}</option>`).join("")}</select></label><label>Rank <select data-member-add-rank>${rankOptions}</select></label><button type="button" class="button-primary" data-member-add${candidates?.characters.length ? "" : " disabled"}>Add member</button><p role="status" aria-live="polite" data-member-add-status></p></div>` : ""}
@@ -178,7 +180,7 @@ export async function registerRosterMembersPage(app: FastifyInstance, assets: As
       <p>Blizzard source last modified: ${comparison.sourceLastModifiedAt ? escapeHtml(new Date(comparison.sourceLastModifiedAt).toLocaleString("en-US", { timeZone: "UTC", timeZoneName: "short" })) : "Not provided"}.</p>
       <p>${comparison.mode === "manual" ? "Manual membership and ranks remain authoritative after refreshing the Blizzard observation." : "Blizzard Sync uses the observed roster for effective membership and ranks; a refresh may change access."}</p>
     </section>`;
-    const body = section === "synchronization" ? `${synchronization}${observationControls}${reconciliation}${syncTransition}` : membersView.initialized ? `${membersTable}${applicantReview}` : `<section class="settings-panel"><h2>Members</h2><p>${comparison.manualInitialized
+    const body = section === "synchronization" ? renderPageSectionStack(synchronization, observationControls, reconciliation, syncTransition) : membersView.initialized ? renderPageSectionStack(membersTable, applicantReview) : `<section class="settings-panel"><h2>Members</h2><p>${comparison.manualInitialized
       ? "The Manual roster has been initialized. Member management will be available in a subsequent release step."
       : "Roster initialization is not available in the current management mode."}</p></section>`;
     return reply.header("Cache-Control", "no-store").type("text/html; charset=utf-8").send(renderPage(assets, {
