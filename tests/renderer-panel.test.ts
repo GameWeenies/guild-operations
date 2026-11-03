@@ -41,7 +41,7 @@ test("Discord integration uses shared form spacing instead of a feature exceptio
 });
 
 test("Discord emoji preview uses shared field and action spacing", () => {
-  const preview = discordSource.slice(discordSource.indexOf('action="/admin/discord/emoji/preview"'), discordSource.indexOf(': "<p>No text channels are available for a preview.</p>"'));
+  const preview = discordSource.slice(discordSource.indexOf('previewSection = channels.length'), discordSource.indexOf(': "<p>No text channels are available for a preview.</p>"'));
   assert.match(preview, /renderFormLayout\(/);
   assert.match(preview, /renderActionRow\(/);
   assert.match(preview, /name="channel_id" required/);
