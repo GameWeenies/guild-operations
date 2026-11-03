@@ -9,6 +9,7 @@
 .discord-callback code { overflow-wrap: anywhere; flex: 1 1 18rem; }
 .discord-verify-action { display: block; margin-top: .8rem; }
 .discord-enablement-row { display: flex; justify-content: space-between; align-items: center; gap: 1rem; border-top: 1px solid var(--theme-border, rgba(255,255,255,.14)); padding-top: 1.2rem; margin-top: 1.2rem; }
+.discord-setup-guide form[action="/admin/discord"] > .button-primary { margin-top: 1.25rem; }
 .discord-enablement-row p { margin: .4rem 0 0; color: var(--theme-text-muted); font-size: .88rem; }
 .discord-enablement { flex: none; display: flex; align-items: center; gap: .5rem; }
 .discord-server-install { border-top: 1px solid var(--theme-border, rgba(255,255,255,.14)); padding-top: 1.2rem; margin-top: 1.5rem; }
