@@ -78,8 +78,7 @@ export async function renderDiscordContextSetting(kind: DiscordContextSetting, l
         const options = channels.map((channel) => `<option value="${htmlText(channel.id)}"${configuration.articleChannelId === channel.id ? " selected" : ""}>${htmlText(channel.name ?? channel.id)}</option>`).join("");
         articleSection = `<p>Publish Guild Operations articles to an optional Discord channel. Articles remain authoritative in Guild Operations.</p>
           <form method="post" action="/admin/discord/articles">
-            <label class="discord-field"><span>Article publication channel</span><select name="channel_id"><option value="">Do not publish articles to Discord</option>${options}</select></label>
-            <button type="submit" class="button-primary">Save article destination</button>
+            ${renderFormLayout(`<label class="discord-field"><span>Article publication channel</span><select name="channel_id"><option value="">Do not publish articles to Discord</option>${options}</select></label>`, renderActionRow('<button type="submit" class="button-primary">Save article destination</button>'))}
           </form>`;
       } catch (error) {
         log.warn({ err: error }, "Discord channel discovery failed");
