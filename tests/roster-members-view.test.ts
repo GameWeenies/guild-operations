@@ -13,9 +13,10 @@ test("members view reads effective membership rather than directly selecting obs
 });
 test("members page shows mode-aware effective roster with discrepancies only in Manual", () => {
   assert.match(page, /rosterMembersView\(identity\.identityId\)/);
-  assert.match(page, /membersView\.members\.map/);
+  assert.match(page, /\[\.\.\.membersView\.members\]\.sort/);
+  assert.match(page, /sortedMembers\.map/);
   assert.match(page, /member\.discrepancy/);
   assert.match(page, /Blizzard-observed membership is authoritative\. This roster is read-only/);
-  assert.match(page, /membersView\.initialized \? `\$\{membersTable\}\$\{applicantReview\}`/);
-  assert.match(page, /section === "synchronization" \? `\$\{synchronization\}\$\{observationControls\}\$\{reconciliation\}\$\{syncTransition\}`/);
+  assert.match(page, /membersView\.initialized \? renderPageSectionStack\(membersTable, applicantReview\)/);
+  assert.match(page, /section === "synchronization" \? renderPageSectionStack\(synchronization, observationControls, reconciliation, syncTransition\)/);
 });
