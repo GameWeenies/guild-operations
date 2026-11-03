@@ -159,3 +159,7 @@ Configured homepage text is plain text. It does not accept HTML, Markdown, arbit
 
 Articles are a separate future content concern. If Articles are introduced, the homepage may project them without owning their authored content or lifecycle.
 
+
+### Data tables
+
+The renderer owns table containment through `renderTableFrame` and sortable header controls through `renderSortableColumnHeader`. Features own their row data, sort comparisons and actions. Wide tables remain horizontally scrollable inside their panel. Tables that opt into `compactRecords` switch to vertically stacked, labeled rows on narrow viewports; cells supply `data-label` and sortable headers remain visible as controls. Use real table markup and `aria-sort` on the active column rather than a separate sort dropdown. The Roster Members workspace is the first compact-record consumer. Other Roster review and reconciliation grids retain scrollable comparison tables, because their columns are meaningful together.
