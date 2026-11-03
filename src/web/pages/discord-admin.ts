@@ -165,11 +165,10 @@ export async function registerDiscordAdminPage(app: FastifyInstance, assets: Ass
         previewSection = channels.length
           ? `<p>Send one sample raid-style message to a selected channel. This does not configure ongoing publication.</p>
              <form method="post" action="/admin/discord/emoji/preview">
-               <label class="discord-field"><span>Preview destination</span>
+               ${renderFormLayout(`<label class="discord-field"><span>Preview destination</span>
                  <select name="channel_id" required><option value="">Choose a Discord channel</option>
                    ${channels.map((channel) => `<option value="${htmlText(channel.id)}">${htmlText(channel.name ?? channel.id)}</option>`).join("")}
-                 </select></label>
-               <button type="submit" class="button-secondary">Send emoji preview</button>
+                 </select></label>`, renderActionRow('<button type="submit" class="button-secondary">Send emoji preview</button>'))}
              </form>`
           : "<p>No text channels are available for a preview.</p>";
       } catch (error) {
