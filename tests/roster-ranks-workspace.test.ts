@@ -20,3 +20,16 @@ test("Roster links connect Members and Ranks inside Guild Settings, not primary 
   assert.match(shell, /label: "Roster", href: "\/admin\/roster\/members"/);
   assert.doesNotMatch(shell, /href="\/roster\/members"/);
 });
+
+const rankClient = readFileSync(new URL("../src/web/public/admin-permissions.js", import.meta.url), "utf8");
+const rankStyles = readFileSync(new URL("../src/web/public/admin-permissions.css", import.meta.url), "utf8");
+test("Ranks render independent collapsible cards without a second rank selector", () => {
+  assert.match(admin, /<details id="rank-\$\{rank\.rankIndex\}" class="rank-workspace" data-rank-workspace>/);
+  assert.match(admin, /<summary class="rank-workspace-heading">/);
+  assert.match(admin, /class="rank-workspace-content"/);
+  assert.doesNotMatch(admin, /data-rank-select=/);
+  assert.doesNotMatch(rankClient, /rankSelectors|selectRank\(/);
+  assert.match(rankClient, /requestedRank/);
+  assert.match(rankStyles, /\.rank-workspace\[open\] > summary/);
+  assert.match(admin, /data-rank-save disabled/);
+});
