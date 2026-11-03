@@ -29,7 +29,7 @@ import { GUILD_THEMES, guildTheme, isGuildThemeKey, setGuildTheme, type GuildThe
 import { guildPresentation, parseGuildPresentationUrl, setGuildPresentationDestinations, setGuildSettingsLocationAcknowledged, type GuildPresentation } from "../../core/presentation/guild-presentation.js";
 import { guildHomepage, parseGuildHomepage, setGuildHomepage, type GuildHomepage, type GuildHomepagePrimitive } from "../../core/presentation/guild-homepage.js";
 import type { AssetRegistry } from "../assets.js";
-import { renderAdminSectionStack, renderGuildSettingsHeader, renderPage } from "../render.js";
+import { renderAdminSectionStack, renderGuildSettingsHeader, renderPage, renderPanel } from "../render.js";
 import { viewerForRequest } from "../viewer.js";
 import { renderDiscordContextSetting } from "./discord-admin.js";
 import { publishOperationalRecord } from "../../operational-inspection.js";
@@ -136,7 +136,7 @@ export async function registerAdminPage(app: FastifyInstance, assets: AssetRegis
     const presentation = await guildPresentation();
 
     const orientation = renderAdministrationOrientation(presentation, canConfigureGuildPresentation);
-    const articleSettings = canConfigureDiscord ? administrationSection("article-publication", "article-publication-heading", "Article publication", `<div class="settings-panel">${await renderDiscordContextSetting("article", request.log)}</div>`) : "";
+    const articleSettings = canConfigureDiscord ? administrationSection("article-publication", "article-publication-heading", "Article publication", renderPanel(await renderDiscordContextSetting("article", request.log))) : "";
     const content = `${orientation}${renderAdminSectionStack(articleSettings)}`;
 
     const html = renderPage(assets, { pathname: "/admin/general", title: `General Settings · ${viewer.guildPresentation.guildName} Guild Operations`, description: "Inspect and configure Guild Operations.", viewer, stylesheets: ["admin.css", "discord-admin.css"], scripts: ["admin.js", "operations.js"], header: renderGuildSettingsHeader("General", "Inspect and manage guild-wide configuration."), body: `${content}` });
@@ -255,7 +255,7 @@ export async function registerAdminPage(app: FastifyInstance, assets: AssetRegis
     const authorized = identity ? await canAdministerGuildPermissions(identity.identityId) : false;
     const policies = authorized && identity ? await guildCapabilityPoliciesForActor(identity.identityId) : null;
     const canConfigureDiscord = identity ? await identityHasGuildCapability(identity.identityId, DISCORD_CONFIGURE_CAPABILITY) : false;
-    const discordRoleSettings = canConfigureDiscord ? `<section class="admin-section"><h2>Discord role mapping</h2><div class="settings-panel">${await renderDiscordContextSetting("roles", request.log)}</div></section>` : "";
+    const discordRoleSettings = canConfigureDiscord ? `<section class="admin-section"><h2>Discord role mapping</h2>${renderPanel(await renderDiscordContextSetting("roles", request.log))}</section>` : "";
     const developmentAuthority = identity ? hasDevelopmentGuildMasterAuthority(identity.identityId) : false;
     const canRename = identity ? (developmentAuthority || (await effectiveGuildAuthority(identity.identityId))?.rankIndex === 0) : false;
     const content = authorized && policies ? `<section class="permission-administration" aria-labelledby="permission-heading"><div class="permission-intro"><h2 id="permission-heading">Guild ranks</h2><p>Start with a guild rank to review its display name, capabilities, and integration relationships. Lower rank numbers mean higher Guild Operations authority; Rank 0 is Guild Master.</p>${developmentAuthority ? `<p class="permission-operator-notice"><strong>Development authority override active.</strong> This access is independent of your current guild rank.</p>` : ""}</div>${renderPermissionPolicies(policies, canRename)}</section>` : `<section class="admin-unavailable" aria-labelledby="admin-unavailable-heading"><h2 id="admin-unavailable-heading">Permission administration is not available for this account.</h2></section>`;
