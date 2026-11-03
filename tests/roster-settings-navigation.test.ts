@@ -29,8 +29,8 @@ test("Verified GM retains a Settings entrypoint before Manual initialization", (
 });
 
 test("Synchronization has its own roster section, not Members or General", () => {
-  assert.match(roster, /section === "synchronization" \? `\$\{synchronization\}\$\{observationControls\}\$\{reconciliation\}\$\{syncTransition\}`/);
-  assert.match(roster, /membersView\.initialized \? `\$\{membersTable\}\$\{applicantReview\}`/);
+  assert.match(roster, /section === "synchronization" \? renderPageSectionStack\(synchronization, observationControls, reconciliation, syncTransition\)/);
+  assert.match(roster, /membersView\.initialized \? renderPageSectionStack\(membersTable, applicantReview\)/);
   assert.match(roster, /href="\/admin\/roster\/synchronization"/);
   assert.match(admin, /href="\/admin\/roster\/synchronization"/);
   assert.match(roster, /const synchronization =/);
