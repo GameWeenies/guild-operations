@@ -1,4 +1,3 @@
-const rankSelectors = [...document.querySelectorAll("[data-rank-select]")];
 const rankWorkspaces = [...document.querySelectorAll("[data-rank-workspace]")];
 const savedNames = new WeakMap();
 const savedRoles = new WeakMap();
@@ -36,9 +35,10 @@ function refreshSave(workspace) {
   const changes = rankChanges(workspace);
   button.disabled = saving.has(workspace) || !(changes.nameChanged || changes.roleChanged || changes.capabilities.length);
 }
-function selectRank(rankIndex) {
-  for (const button of rankSelectors) button.setAttribute("aria-pressed", String(button.dataset.rankSelect === String(rankIndex)));
-  for (const workspace of rankWorkspaces) workspace.hidden = workspace.id !== `rank-${rankIndex}`;
+const requestedRank = location.hash.match(/^#rank-(\\d+)$/)?.[1];
+if (requestedRank) document.getElementById(`rank-${requestedRank}`)?.setAttribute("open", "");
+
+for (const workspace of rankWorkspaces) workspace.hidden = workspace.id !== `rank-${rankIndex}`;
 }
 for (const button of rankSelectors) button.addEventListener("click", () => selectRank(button.dataset.rankSelect));
 if (rankSelectors.length) {
@@ -80,8 +80,6 @@ for (const workspace of rankWorkspaces) {
           savedNames.set(changes.name, body.rank.displayName);
           changes.name.value = body.rank.displayName;
           workspace.querySelector("[data-rank-heading]").textContent = body.rank.displayName;
-          const label = document.querySelector(`[data-rank-select="${rankIndex}"] [data-rank-label]`);
-          if (label) label.textContent = body.rank.displayName;
           completed.push("name");
         } catch (error) { failures.push(`Display name: ${error.message}`); }
       }
