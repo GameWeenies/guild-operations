@@ -133,12 +133,10 @@ function raidSignupOfferContract(): ActivityParticipationOfferContract {
   };
 }
 
-function raidParticipationEligibility(raid: RaidEventFacts) {
-  return raid.eligibility === "anyone"
-    ? { kind: "any" as const }
-    : raid.eligibility === "guild_character_member"
-      ? { kind: "guild_member_character" as const, guildId: raid.guildId }
-      : { kind: "guildie" as const, guildId: raid.guildId };
+function raidParticipationEligibility() {
+  // Raid participation is open to authenticated web actors and permitted Discord actors.
+  // Ingress authorization is enforced by the respective adapter, not guild roster facts.
+  return { kind: "any" as const };
 }
 
 export async function raidParticipationOfferWorkspace(
@@ -154,7 +152,7 @@ export async function raidParticipationOfferWorkspace(
     if (existingOffers.length > 1) throw new Error("Raid actor has multiple outstanding Participation Offers");
     return participationOfferWorkspace({
       actor,
-      eligibility: raidParticipationEligibility(raid),
+      eligibility: raidParticipationEligibility(),
       contract: raidSignupOfferContract(),
       existingOffer: existingOffers[0] ?? null,
     });
@@ -179,9 +177,6 @@ async function establishRaidSignupWithContext(input: {
   const raid = await raidEventFacts(input.raidId);
   if (!raid) throw new Error("Raid not found");
   requireActiveRaid(raid);
-  if (input.applicantAnchor.kind === "external" && raid.eligibility !== "anyone") {
-    throw new Error("External applicants are only valid for anyone eligibility");
-  }
 
   const persisted = await withTransaction(async (client) => {
     const actor = { kind: input.applicantAnchor.kind, reference: input.applicantAnchor.value } as const;
@@ -197,7 +192,7 @@ async function establishRaidSignupWithContext(input: {
       activityKind: "raid",
       activityId: input.raidId,
       actor,
-      eligibility: raidParticipationEligibility(raid),
+      eligibility: raidParticipationEligibility(),
       contract: raidSignupOfferContract(),
       context: input.context,
       procedureReference: signupRowId,
