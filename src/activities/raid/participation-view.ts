@@ -1,10 +1,8 @@
 import { controlledCharacterRecordIdsForIdentity } from "../../core/identity/controlled-characters.js";
-import { controlledGuildMemberCharacters } from "../../core/guild/guild-characters.js";
 import { characterProjections } from "../../core/identity/character-projection.js";
 import { identityRepresentations } from "../../core/identity/guildie-attribution.js";
 import { activityParticipationOffersForActivity } from "../../core/activity/participation.js";
 import { pool } from "../../db.js";
-import { effectiveGuildAuthority } from "../../core/authority/guild-permissions.js";
 import { specHasTrait, specsForClass } from "../../wow-traits/registry.js";
 import { raidEventFacts, type RaidEventFacts } from "./application.js";
 import type { RaidOfferedSpec, RaidRole } from "./domain.js";
@@ -52,17 +50,7 @@ export async function raidParticipationCharacters(
   const raid = await raidEventFacts(raidId);
   if (!raid) throw new Error("Raid not found");
 
-  if (raid.eligibility !== "anyone") {
-    const authority = await effectiveGuildAuthority(guildieId, raid.guildId);
-    if (!authority) throw new Error("Applicant is not a current Guildie");
-  }
-
-  const controlled = raid.eligibility === "guild_character_member"
-    ? await characterProjections(
-        (await controlledGuildMemberCharacters(guildieId, raid.guildId))
-          .map((character) => character.characterRecordId),
-      )
-    : await characterProjections(await controlledCharacterRecordIdsForIdentity(guildieId));
+  const controlled = await characterProjections(await controlledCharacterRecordIdsForIdentity(guildieId));
   const eligible = controlled.filter((character) => character.className !== null);
 
   return {
