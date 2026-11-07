@@ -150,12 +150,16 @@ export async function raidParticipationOfferWorkspace(
       actor,
     });
     if (existingOffers.length > 1) throw new Error("Raid actor has multiple outstanding Participation Offers");
-    return participationOfferWorkspace({
+    const workspace = await participationOfferWorkspace({
       actor,
       eligibility: raidParticipationEligibility(),
       contract: raidSignupOfferContract(),
       existingOffer: existingOffers[0] ?? null,
     });
+    // Raid offers are declarations, never character-control assertions.
+    return { ...workspace, requests: workspace.requests.map((request) => request.acquisition.kind === "wow_spec"
+      ? { ...request, acquisition: { ...request.acquisition, characters: [], characterSource: null, allowDeclaredClass: true } }
+      : request) };
   });
 }
 
