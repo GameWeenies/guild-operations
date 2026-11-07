@@ -1,5 +1,4 @@
 import { controlledCharacterRecordIdsForIdentity } from "../../core/identity/controlled-characters.js";
-import { controlledGuildMemberCharacters } from "../../core/guild/guild-characters.js";
 import { characterProjections } from "../../core/identity/character-projection.js";
 import { identityRepresentations } from "../../core/identity/guildie-attribution.js";
 import { activityParticipationOffersForActivity } from "../../core/activity/participation.js";
