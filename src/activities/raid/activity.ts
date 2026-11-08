@@ -8,18 +8,12 @@ import {
 } from "./application.js";
 import { raidListingParticipationSummary } from "./listing-view.js";
 import { RAID_ASSIGN_CAPABILITY, RAID_CAPABILITY_DEFINITIONS, RAID_MODIFY_CAPABILITY, RAID_STAGE_CAPABILITY } from "./permissions.js";
-import type { RaidDifficulty, RaidEligibility } from "./domain.js";
+import type { RaidDifficulty } from "./domain.js";
 import { raidsForOperation } from "./operation-view.js";
 import { raidSignup, raidSignups } from "./participation-view.js";
 
 function difficultyLabel(value: RaidDifficulty): string {
   return value[0].toUpperCase() + value.slice(1);
-}
-
-function eligibilityLabel(value: RaidEligibility): string {
-  if (value === "guild_character_member") return "Guild Character Member";
-  if (value === "guildie") return "Guildie";
-  return "Anyone";
 }
 
 async function raidOccurrence(raidId: string) {
@@ -30,7 +24,6 @@ async function raidOccurrence(raidId: string) {
 
   const attributes: ActivityOccurrenceAttribute[] = [
     { kind: "difficulty", label: "Difficulty", provenance: "declared", value: { type: "string", value: difficultyLabel(raid.difficulty) } },
-    { kind: "eligibility", label: "Who can apply", provenance: "declared", value: { type: "string", value: eligibilityLabel(raid.eligibility) } },
     ...raid.requirements.map((requirement) => ({
       kind: "requirement",
       label: requirement.label,
