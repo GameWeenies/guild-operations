@@ -16,20 +16,12 @@ export type RaidApplicantAnchor =
   | { kind: "native"; value: string }
   | { kind: "external"; value: string };
 
-export type RaidCharacterReference = {
-  region: string;
-  realmId: string;
-  characterId: string;
-};
-
 export type RaidOfferedSpec = {
   className: string;
   specName: string;
 };
 
-export type RaidOfferedSpecInput =
-  | { character: RaidCharacterReference; specName: string }
-  | { className: string; specName: string };
+export type RaidOfferedSpecInput = { className: string; specName: string };
 
 export type EstablishRaidInput = {
   label: string;
