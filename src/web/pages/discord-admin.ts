@@ -10,6 +10,7 @@ import {
   setDiscordIntegrationEnabled, enableVerifiedDiscordIntegration, establishDiscordGuildBinding,
   setDiscordArticleChannel,
   setDiscordRaidChannel,
+  setDiscordRaidSignupsAllowed,
   setDiscordRaffleChannel,
 } from "../../integrations/discord/configuration.js";
 import { cacheDiscordInteractionPublicKey, loadDiscordInteractionPublicKey } from "../../integrations/discord/interaction-key.js";
@@ -94,7 +95,10 @@ export async function renderDiscordContextSetting(kind: DiscordContextSetting, l
         const channels = (await discordServerChannels(configuration.botToken, configuration.discordGuildId))
           .filter((channel) => channel.type === DISCORD_TEXT_CHANNEL || channel.type === DISCORD_ANNOUNCEMENT_CHANNEL);
         const options = channels.map((channel) => `<option value="${htmlText(channel.id)}"${configuration.raidChannelId === channel.id ? " selected" : ""}>${htmlText(channel.name ?? channel.id)}</option>`).join("");
-        raidSection = `<form method="post" action="/admin/discord/raids" data-activity-publication-form>
+        raidSection = `<form method="post" action="/admin/discord/raid-signups" data-activity-publication-form>
+            <label class="discord-field"><span>Allow Raid signups through Discord</span><select name="allowed"><option value="true"${configuration.allowRaidSignups ? " selected" : ""}>Enabled</option><option value="false"${!configuration.allowRaidSignups ? " selected" : ""}>Disabled</option></select></label>
+            <button type="submit" class="button-primary">Save signup setting</button>
+          </form><form method="post" action="/admin/discord/raids" data-activity-publication-form>
             <label class="discord-field"><span>Raid publication channel</span><select name="channel_id"><option value="">Do not publish raids to Discord</option>${options}</select></label>
             
           </form>`;
@@ -338,6 +342,17 @@ export async function registerDiscordAdminPage(app: FastifyInstance, assets: Ass
       request.log.error({ err: error }, "Discord emoji preview failed");
       return reply.code(303).redirect("/admin/discord?preview=failed");
     }
+  });
+
+  app.post("/admin/discord/raid-signups", async (request, reply) => {
+    const identity = await authenticatedIdentity(request.cookies[SESSION_COOKIE_NAME]);
+    if (!identity) return reply.code(401).send({ error: "authentication_required" });
+    if (!await identityHasGuildCapability(identity.identityId, DISCORD_CONFIGURE_CAPABILITY)) return reply.code(403).send({ error: "discord_configuration_not_authorized" });
+    const body = (request.body ?? {}) as Record<string, unknown>;
+    if (body.allowed !== "true" && body.allowed !== "false") return reply.code(400).send({ error: "invalid_discord_raid_signup_setting" });
+    const expectedBinding = await requireOperationalInstallationGuildBinding();
+    if (!await setDiscordRaidSignupsAllowed(body.allowed === "true", expectedBinding)) return reply.code(409).send({ error: "discord_configuration_changed_during_verification" });
+    return reply.redirect("/admin/modules");
   });
 
   app.post("/admin/discord/raids", async (request, reply) => {
