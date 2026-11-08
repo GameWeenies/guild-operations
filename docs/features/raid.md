@@ -42,10 +42,9 @@ Establishment defines:
 - optional description;
 - occurrence coordinate;
 - difficulty;
-- participation eligibility; and
 - optional informational readiness requirements.
 
-Eligibility is required at establishment and is immutable afterwards. While the Raid remains Active, an authorized operator may modify its mutable definition, including its occurrence coordinate.
+While the Raid remains Active, an authorized operator may modify its mutable definition, including its occurrence coordinate.
 
 Readiness requirements communicate expectations to participants. Guild Operations does not mechanically enforce them.
 
@@ -57,7 +56,7 @@ A Raid signup is Raid procedure expressing a participant's commitment: the appli
 
 The signup produces an Activity Participation Offer as systemic provenance. The Offer is not itself Participation.
 
-An applicant supplies an identity plus either a controlled eligible character or, when the Raid permits anyone, a declared class, and the specializations they are willing to play. Raid uses Core-owned identity classifications to determine whether required Guildie or Guild Character facts hold; Raid owns why those classifications matter to its procedure.
+A signed-in Guild Operations user may offer participation through the web application. A Discord interaction actor may offer through the configured Discord integration when **Allow Raid signups through Discord** is enabled. Discord-only participants retain their Discord identity and display attribution; linking to a web or Blizzard account is not required. The setting controls Discord interaction ingress, not web signups or existing commitments.\n\nApplicants declare one or more class/specialization combinations from the shared World of Warcraft catalog. These declarations express willingness to play, not character ownership or verified guild membership. Raid signup does not require a controlled character, Blizzard account, or current guild roster membership.
 
 The applicant does not declare a Raid role directly. Raid derives willing roles from the class and specialization trait index. An assignment can only use a role supported by a specialization the applicant offered.
 
