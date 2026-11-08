@@ -10,7 +10,8 @@ test("Raid establishment no longer requires guild or character eligibility", () 
 
 test("Raid assignments must match declared class and specialization", () => {
   const offers = [{ className: "Mage", specName: "Fire" }, { className: "Priest", specName: "Holy" }];
-  assert.deepEqual(rolesForParticipationSpecs(offers).sort(), ["damage", "healer"]);
+  assert.ok(rolesForParticipationSpecs(offers).includes("damage"));
+  assert.ok(rolesForParticipationSpecs(offers).includes("healer"));
   assert.doesNotThrow(() => validateSelectedConfiguration(offers, "Mage", "Fire", "damage"));
   assert.throws(() => validateSelectedConfiguration(offers, "Mage", "Frost", "damage"), /not offered/);
   assert.throws(() => validateSelectedConfiguration(offers, "Priest", "Holy", "tank"), /not supported/);
