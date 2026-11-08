@@ -176,6 +176,10 @@ async function establishRaidSignupWithContext(input: {
   applicantAnchor: RaidApplicantAnchor;
   context: Readonly<Record<string, unknown>>;
 }): Promise<string> {
+  const declared = input.context.offered_specs;
+  if (Array.isArray(declared) && declared.some((item) => item !== null && typeof item === "object" && "character" in item)) {
+    throw new Error("Raid offers must declare class and specialization, not a character");
+  }
   const raid = await raidEventFacts(input.raidId);
   if (!raid) throw new Error("Raid not found");
   requireActiveRaid(raid);
