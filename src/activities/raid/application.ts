@@ -23,7 +23,6 @@ import {
   type ModifyRaidInput,
   type RaidApplicantAnchor,
   type RaidDifficulty,
-  type RaidEligibility,
   type RaidRequirement,
   type RaidRole,
   type RaidOfferedSpec,
