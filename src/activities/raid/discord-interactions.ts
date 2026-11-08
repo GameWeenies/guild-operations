@@ -33,7 +33,7 @@ async function handleRaid(interaction: DiscordComponentInteraction): Promise<Dis
   const raid = await raidEventFacts(raidId);
   if (!raid || raid.concludedAtUnix !== null) return ephemeral("This raid is no longer accepting signups.");
   const configuration = await discordIntegrationConfiguration();
-  if (!configuration?.enabled || !configuration.allowRaidSignups) return ephemeral("Discord raid signups are disabled. Use the Guild Operations website.");
+  if (action !== "withdraw" && (!configuration?.enabled || !configuration.allowRaidSignups)) return ephemeral("Discord raid signups are disabled. Use the Guild Operations website.");
   const actor = await actorFor(interaction);
   if (action === "withdraw") {
     const rows = await raidSignups(raidId);
