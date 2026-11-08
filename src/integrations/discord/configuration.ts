@@ -33,6 +33,7 @@ export type DiscordIntegrationConfiguration = {
   discordGuildId: string | null;
   articleChannelId: string | null;
   raidChannelId: string | null;
+  allowRaidSignups: boolean;
   raffleChannelId: string | null;
 };
 
@@ -49,8 +50,9 @@ export async function discordIntegrationConfiguration(): Promise<DiscordIntegrat
     discord_guild_id: string | null;
     article_channel_id: string | null;
     raid_channel_id: string | null;
+    allow_raid_signups: boolean;
     raffle_channel_id: string | null;
-  }>(`SELECT enabled, application_id, application_name, application_verified_at, interaction_public_key, bot_user_id, bot_username, discord_guild_id, article_channel_id, raid_channel_id, raffle_channel_id
+  }>(`SELECT enabled, application_id, application_name, application_verified_at, interaction_public_key, bot_user_id, bot_username, discord_guild_id, article_channel_id, raid_channel_id, raffle_channel_id, allow_raid_signups
       FROM discord_integration_configuration
       WHERE singleton = true`);
   const row = result.rows[0];
@@ -69,6 +71,7 @@ export async function discordIntegrationConfiguration(): Promise<DiscordIntegrat
       discordGuildId: null,
       articleChannelId: null,
       raidChannelId: null,
+      allowRaidSignups: true,
       raffleChannelId: null,
     };
   }
@@ -87,6 +90,7 @@ export async function discordIntegrationConfiguration(): Promise<DiscordIntegrat
     discordGuildId: credentialsMatch ? row.discord_guild_id : null,
     articleChannelId: credentialsMatch ? row.article_channel_id : null,
     raidChannelId: credentialsMatch ? row.raid_channel_id : null,
+    allowRaidSignups: row.allow_raid_signups,
     raffleChannelId: credentialsMatch ? row.raffle_channel_id : null,
   };
 }
@@ -236,5 +240,13 @@ export async function setDiscordRaffleChannel(channelId: string | null, expected
   return (await updateDiscordConfiguration(
     "UPDATE discord_integration_configuration SET raffle_channel_id = $1, updated_at = now() WHERE singleton = true AND enabled = true",
     [channelId], expectedBinding,
+  )) === 1;
+}
+
+/** Control new Discord Raid offers independently of publication destinations. */
+export async function setDiscordRaidSignupsAllowed(allowed: boolean, expectedBinding: { guildId: string; boundAt: Date }): Promise<boolean> {
+  return (await updateDiscordConfiguration(
+    "UPDATE discord_integration_configuration SET allow_raid_signups = $1, updated_at = now() WHERE singleton = true",
+    [allowed], expectedBinding,
   )) === 1;
 }
