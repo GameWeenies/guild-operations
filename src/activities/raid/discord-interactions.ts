@@ -17,6 +17,33 @@ const menu = (content: string, customId: string, options: { label: string; value
   type: 4, data: { flags: 64, content, components: [{ type: 1, components: [{ type: 3, custom_id: customId, min_values: 1, max_values: multiple ? options.length : 1, options }] }] },
 });
 
+// The draft is encoded in the component ID, not process memory, so the wizard
+// survives requests routed to different API instances. Every bit maps to a catalog spec.
+const catalog = classes.flatMap((className) => specsForClass(className).map((specName) => ({ className, specName })));
+const fullMask = (1n << BigInt(catalog.length)) - 1n;
+function draftFrom(encoded: string): bigint | null {
+  if (!/^[0-9a-z]{1,16}$/.test(encoded)) return null;
+  let value = 0n;
+  for (const digit of encoded) value = value * 36n + BigInt(parseInt(digit, 36));
+  return value <= fullMask ? value : null;
+}
+function draftOffers(mask: bigint): RaidOfferedSpecInput[] {
+  return catalog.filter((_, index) => (mask & (1n << BigInt(index))) !== 0n);
+}
+function draftId(action: string, raidId: string, mask: bigint): string {
+  return `go:raid:${action}:${raidId}:${mask.toString(36)}`;
+}
+function draftActions(raidId: string, mask: bigint): DiscordInteractionResponse {
+  const offered = draftOffers(mask);
+  return { type: 4, data: { flags: 64,
+    content: `Your offered specializations: ${offered.map(spec => `${spec.specName} ${spec.className}`).join(", ")}. Save or add another class.`,
+    components: [{ type: 1, components: [
+      { type: 2, style: 3, label: "Save signup", custom_id: draftId("save", raidId, mask) },
+      { type: 2, style: 1, label: "Add another class", custom_id: draftId("add", raidId, mask) },
+    ] }],
+  } };
+}
+
 async function actorFor(interaction: DiscordComponentInteraction): Promise<RaidApplicantAnchor> {
   const user = interaction.member?.user;
   if (!user?.id || !/^\d+$/.test(user.id)) throw new Error("Discord member identity unavailable");
@@ -27,9 +54,11 @@ async function actorFor(interaction: DiscordComponentInteraction): Promise<RaidA
 
 async function handleRaid(interaction: DiscordComponentInteraction): Promise<DiscordInteractionResponse> {
   const id = interaction.data?.custom_id ?? "";
-  const match = /^go:raid:(start|class|spec|withdraw):([0-9a-f-]{36})$/.exec(id);
+  const match = /^go:raid:(start|class|spec|add|save|withdraw):([0-9a-f-]{36})(?::([0-9a-z]{1,16}))?$/.exec(id);
   if (!match) return ephemeral("This raid interaction is no longer valid.");
-  const [, action, raidId] = match;
+  const [, action, raidId, encodedDraft] = match;
+  const draft = encodedDraft === undefined ? 0n : draftFrom(encodedDraft);
+  if (draft === null) return ephemeral("Invalid signup draft. Start again.");
   const raid = await raidEventFacts(raidId);
   if (!raid || raid.concludedAtUnix !== null) return ephemeral("This raid is no longer accepting signups.");
   const configuration = await discordIntegrationConfiguration();
@@ -45,19 +74,19 @@ async function handleRaid(interaction: DiscordComponentInteraction): Promise<Dis
   const workspace = await raidParticipationOfferWorkspace(raid, { kind: actor.kind, reference: actor.value });
   const acquisition = workspace.requests.find(item => item.request.name === "offered_specs")?.acquisition;
   if (!acquisition || acquisition.kind !== "wow_spec") return ephemeral("Raid specialization choices are unavailable.");
-  if (action === "start") {
-    return menu("Choose a class for your raid signup.", `go:raid:class:${raidId}`, classes.map((name, index) => ({ label: name, value: String(index) })));
+  if (action === "start" || action === "add") {
+    return menu("Choose a class for your raid signup.", draftId("class", raidId, draft), classes.map((name, index) => ({ label: name, value: String(index) })));
   }
   if (action === "class") {
     const index = Number(interaction.data?.values?.[0] ?? "");
     const className = Number.isInteger(index) ? classes[index] : undefined;
     if (!className) return ephemeral("Invalid class. Start again.");
-    return menu(`Choose specializations for ${className}.`, `go:raid:spec:${raidId}`, specsForClass(className).map(spec => ({ label: `${spec} ${className}`, value: `${index}:${spec}` })), true);
+    return menu(`Choose specializations for ${className}.`, draftId("spec", raidId, draft), specsForClass(className).map(spec => ({ label: `${spec} ${className}`, value: `${index}:${spec}` })), true);
   }
   if (action === "spec") {
     const selections = interaction.data?.values ?? [];
     if (!selections.length || selections.length > 4 || new Set(selections).size !== selections.length) return ephemeral("Invalid specialization selection. Start again.");
-    const offers: RaidOfferedSpecInput[] = [];
+    let updatedDraft = draft;
     let selectedClass: string | null = null;
     for (const selected of selections) {
       const matchSpec = /^(\d{1,2}):(.{1,60})$/.exec(selected);
@@ -65,10 +94,17 @@ async function handleRaid(interaction: DiscordComponentInteraction): Promise<Dis
       const className = classes[Number(matchSpec[1])];
       if (!className || (selectedClass !== null && selectedClass !== className) || !specsForClass(className).includes(matchSpec[2])) return ephemeral("Invalid specialization. Start again.");
       selectedClass = className;
-      offers.push({ className, specName: matchSpec[2] });
+      const catalogIndex = catalog.findIndex(item => item.className === className && item.specName === matchSpec[2]);
+      if (catalogIndex < 0) return ephemeral("Invalid specialization. Start again.");
+      updatedDraft |= 1n << BigInt(catalogIndex);
     }
+    return draftActions(raidId, updatedDraft);
+  }
+  if (action === "save") {
+    const offers = draftOffers(draft);
+    if (!offers.length) return ephemeral("Choose at least one specialization before saving.");
     await establishRaidSignup({ raidId, applicantAnchor: actor, offeredSpecs: offers });
-    return ephemeral("Your raid signup has been recorded. You can use Sign up again to revise it.");
+    return ephemeral("Your raid signup has been recorded. Use Sign up again to revise it.");
   }
   return ephemeral("Unsupported raid interaction.");
 }
