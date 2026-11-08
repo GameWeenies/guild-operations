@@ -7,6 +7,7 @@ import { raidSignups } from "./participation-view.js";
 import { revokeRaidSignup } from "./application.js";
 import { establishDiscordIdentity, resolvedActorSubjectForDiscordIdentity } from "../../integrations/discord/identity.js";
 import { registerDiscordComponentHandler, type DiscordComponentInteraction, type DiscordInteractionResponse } from "../../integrations/discord/interaction-handlers.js";
+import { discordIntegrationConfiguration } from "../../integrations/discord/configuration.js";
 import { specsForClass } from "../../wow-traits/registry.js";
 import type { RaidApplicantAnchor, RaidOfferedSpecInput } from "./domain.js";
 
@@ -31,6 +32,8 @@ async function handleRaid(interaction: DiscordComponentInteraction): Promise<Dis
   const [, action, raidId] = match;
   const raid = await raidEventFacts(raidId);
   if (!raid || raid.concludedAtUnix !== null) return ephemeral("This raid is no longer accepting signups.");
+  const configuration = await discordIntegrationConfiguration();
+  if (!configuration?.enabled || !configuration.allowRaidSignups) return ephemeral("Discord raid signups are disabled. Use the Guild Operations website.");
   const actor = await actorFor(interaction);
   if (action === "withdraw") {
     const rows = await raidSignups(raidId);
