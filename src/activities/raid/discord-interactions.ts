@@ -60,7 +60,7 @@ async function handleRaid(interaction: DiscordComponentInteraction): Promise<Dis
     const offers: RaidOfferedSpecInput[] = [];
     let selectedClass: string | null = null;
     for (const selected of selections) {
-      const matchSpec = /^(\\d{1,2}):(.{1,60})$/.exec(selected);
+      const matchSpec = /^(\d{1,2}):(.{1,60})$/.exec(selected);
       if (!matchSpec) return ephemeral("Invalid specialization. Start again.");
       const className = classes[Number(matchSpec[1])];
       if (!className || (selectedClass !== null && selectedClass !== className) || !specsForClass(className).includes(matchSpec[2])) return ephemeral("Invalid specialization. Start again.");
