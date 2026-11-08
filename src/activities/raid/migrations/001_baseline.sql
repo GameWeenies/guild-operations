@@ -6,7 +6,6 @@ CREATE TABLE raid_events (
   occurs_start_unix bigint NOT NULL CHECK (occurs_start_unix > 0),
   occurs_end_unix bigint,
   tags text[] NOT NULL DEFAULT ARRAY[]::text[],
-  eligibility text NOT NULL CHECK (eligibility IN ('guild_character_member', 'guildie', 'anyone')),
   difficulty text NOT NULL CHECK (difficulty IN ('normal', 'heroic', 'mythic')),
   created_by_identity_id uuid NOT NULL REFERENCES identities(identity_id) ON DELETE RESTRICT,
   created_at_unix bigint NOT NULL DEFAULT (extract(epoch FROM now())::bigint),
