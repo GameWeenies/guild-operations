@@ -38,7 +38,6 @@ export type RaidEventFacts = {
   description: string | null;
   occursAt: readonly [number] | readonly [number, number];
   tags: string[];
-  eligibility: RaidEligibility;
   difficulty: RaidDifficulty;
   requirements: RaidRequirement[];
   cancelledAtUnix: number | null;
@@ -74,11 +73,11 @@ async function replaceRaidRequirements(client:PoolClient,raidId:string,requireme
 }
 async function loadRaidEventFacts(raidId:string, client:PoolClient|null, includeCancelled:boolean):Promise<RaidEventFacts|null>{
   const db=client??pool;
-  const r=await db.query<any>(`SELECT raid_id,guild_id,label,description,occurs_start_unix,occurs_end_unix,tags,eligibility,difficulty,cancelled_at_unix,cancelled_by_identity_id,concluded_at_unix,concluded_by_identity_id FROM raid_events WHERE raid_id=$1 AND ($2::boolean OR cancelled_at_unix IS NULL)`,[raidId,includeCancelled]);
+  const r=await db.query<any>(`SELECT raid_id,guild_id,label,description,occurs_start_unix,occurs_end_unix,tags,difficulty,cancelled_at_unix,cancelled_by_identity_id,concluded_at_unix,concluded_by_identity_id FROM raid_events WHERE raid_id=$1 AND ($2::boolean OR cancelled_at_unix IS NULL)`,[raidId,includeCancelled]);
   const x=r.rows[0]; if(!x)return null;
   const requirements=await db.query<{label:string;value:string}>("SELECT label,value FROM raid_requirements WHERE raid_id=$1 ORDER BY position",[raidId]);
   const s=Number(x.occurs_start_unix),e=x.occurs_end_unix===null?null:Number(x.occurs_end_unix);
-  return {raidId:x.raid_id,guildId:x.guild_id,label:x.label,description:x.description,occursAt:e===null?[s]:[s,e],tags:x.tags,eligibility:x.eligibility,difficulty:x.difficulty,requirements:requirements.rows,cancelledAtUnix:x.cancelled_at_unix===null?null:Number(x.cancelled_at_unix),cancelledByGuildieId:x.cancelled_by_identity_id,concludedAtUnix:x.concluded_at_unix===null?null:Number(x.concluded_at_unix),concludedByGuildieId:x.concluded_by_identity_id};
+  return {raidId:x.raid_id,guildId:x.guild_id,label:x.label,description:x.description,occursAt:e===null?[s]:[s,e],tags:x.tags,difficulty:x.difficulty,requirements:requirements.rows,cancelledAtUnix:x.cancelled_at_unix===null?null:Number(x.cancelled_at_unix),cancelledByGuildieId:x.cancelled_by_identity_id,concludedAtUnix:x.concluded_at_unix===null?null:Number(x.concluded_at_unix),concludedByGuildieId:x.concluded_by_identity_id};
 }
 export async function raidEventFacts(raidId:string, client:PoolClient|null=null):Promise<RaidEventFacts|null>{return loadRaidEventFacts(raidId,client,false);}
 export async function raidEventFactsIncludingCancelled(raidId:string, client:PoolClient|null=null):Promise<RaidEventFacts|null>{return loadRaidEventFacts(raidId,client,true);}
@@ -86,7 +85,7 @@ export async function raidEventFactsIncludingCancelled(raidId:string, client:Poo
 export async function establishRaid(actorGuildieId:string,input:EstablishRaidInput):Promise<RaidEventFacts>{
   validateEstablishRaidInput(input); await requireGuildCapabilityOrOperator(actorGuildieId,RAID_MODIFY_CAPABILITY); const guildId=(await requireOperationalInstallationGuildBinding()).guildId; const tags=normalizedStrings(input.tags??["raid"]);
   const persisted = await withTransaction(async client=>{
-    const r=await client.query<{raid_id:string}>(`INSERT INTO raid_events (guild_id,label,description,occurs_start_unix,occurs_end_unix,tags,eligibility,difficulty,created_by_identity_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING raid_id`,[guildId,input.label.trim(),input.description?.trim()||null,input.occursAt[0],input.occursAt.length===2?input.occursAt[1]:null,tags,input.eligibility,input.difficulty,actorGuildieId]);
+    const r=await client.query<{raid_id:string}>(`INSERT INTO raid_events (guild_id,label,description,occurs_start_unix,occurs_end_unix,tags,difficulty,created_by_identity_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING raid_id`,[guildId,input.label.trim(),input.description?.trim()||null,input.occursAt[0],input.occursAt.length===2?input.occursAt[1]:null,tags,input.difficulty,actorGuildieId]);
     const raidId=r.rows[0].raid_id;
     await replaceRaidRequirements(client,raidId,input.requirements??[]);
     await recordRaidAction(client,raidId,"created",actorGuildieId);
