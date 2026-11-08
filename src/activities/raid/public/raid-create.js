@@ -47,7 +47,6 @@ if (createForm instanceof HTMLFormElement) {
           description: String(data.get("description") ?? ""),
           occursAt: [Math.floor(startDate.getTime() / 1000)],
           difficulty: String(data.get("difficulty") ?? ""),
-          eligibility: String(data.get("eligibility") ?? ""),
           requirements,
         }),
       });
