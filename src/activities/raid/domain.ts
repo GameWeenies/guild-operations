@@ -3,7 +3,6 @@ import { specHasTrait, traitsForSpec, type WowTrait } from "../../wow-traits/reg
 export const RAID_LABEL_MAX_LENGTH = 80;
 export const RAID_DESCRIPTION_MAX_LENGTH = 1400;
 
-export type RaidEligibility = "guild_character_member" | "guildie" | "anyone";
 export type RaidDifficulty = "normal" | "heroic" | "mythic";
 export type RaidRole = "tank" | "healer" | "damage";
 export type RaidOccurrence = readonly [number] | readonly [number, number];
@@ -37,7 +36,6 @@ export type EstablishRaidInput = {
   description?: string | null;
   occursAt: RaidOccurrence;
   tags?: readonly string[];
-  eligibility: RaidEligibility;
   difficulty: RaidDifficulty;
   requirements?: readonly RaidRequirement[];
 };
